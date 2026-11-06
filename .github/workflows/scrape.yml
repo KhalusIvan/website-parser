@@ -1,0 +1,83 @@
+# Runs a scraper and publishes the Excel file to the "data" release + the GitHub Pages site.
+# Start it from the website (needs a token), or from GitHub: Actions -> Scrape -> Run workflow.
+name: Scrape
+run-name: "Scrape ${{ inputs.source || 'vroda' }} · ${{ inputs.lang || 'ua' }} · ${{ inputs.mode || 'all' }}${{ inputs.url && format(' · {0}', inputs.url) || '' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Website
+        type: choice
+        options: [vroda] # add new source ids here
+        default: vroda
+      lang:
+        description: Language
+        type: choice
+        options: [ua, ru]
+        default: ua
+      mode:
+        description: What to scrape
+        type: choice
+        options: [all, category]
+        default: all
+      url:
+        description: Category URL (only for mode = category)
+        type: string
+        required: false
+        default: ""
+  # Uncomment to refresh the whole site automatically (uses the defaults above: vroda, ua, all).
+  # schedule:
+  #   - cron: "0 3 * * 1" # every Monday 03:00 UTC
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    concurrency:
+      group: scrape-${{ inputs.source || 'vroda' }}-${{ inputs.lang || 'ua' }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Scrape
+        env:
+          IN_SOURCE: ${{ inputs.source || 'vroda' }}
+          IN_LANG: ${{ inputs.lang || 'ua' }}
+          IN_MODE: ${{ inputs.mode || 'all' }}
+          IN_URL: ${{ inputs.url }}
+        run: node src/cli.js "$IN_SOURCE" --lang "$IN_LANG" --mode "$IN_MODE" --url "$IN_URL" --out-dir output
+
+      - name: Keep a copy as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: excel-${{ github.run_id }}
+          path: output/
+          retention-days: 30
+
+      - name: Publish to the "data" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view data >/dev/null 2>&1 || \
+            gh release create data --title "Scraped data" --latest=false \
+              --notes "Latest Excel files. Updated automatically by the Scrape workflow."
+          gh release upload data output/* --clobber
+
+  deploy:
+    needs: scrape
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

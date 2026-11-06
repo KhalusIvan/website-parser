@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Website Parser</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f7a4d'/%3E%3Cpath d='M9 9h14v3H9zm0 5.5h14v3H9zM9 20h9v3H9z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>Website Parser</h1>
+          <p class="muted">Scrape online shops and download the catalog as Excel</p>
+        </div>
+      </div>
+      <a id="repo-link" class="ghost-link" href="#" target="_blank" rel="noopener">GitHub repo ↗</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="card" aria-labelledby="new-title">
+        <h2 id="new-title">New export</h2>
+        <form id="scrape-form" novalidate>
+          <label class="field">
+            <span>Website</span>
+            <select id="f-source" name="source" required></select>
+            <small id="f-source-desc" class="muted"></small>
+          </label>
+          <div class="row">
+            <label class="field">
+              <span>Language</span>
+              <select id="f-lang" name="lang" required></select>
+            </label>
+            <label class="field">
+              <span>What to scrape</span>
+              <select id="f-mode" name="mode" required></select>
+            </label>
+          </div>
+          <label class="field" id="f-url-wrap" hidden>
+            <span>Category URL</span>
+            <input id="f-url" name="url" type="url" placeholder="https://..." autocomplete="off">
+            <small class="muted">Paste a link to a category page. Subcategories are included.</small>
+          </label>
+          <p id="form-error" class="error" role="alert" hidden></p>
+          <button id="f-submit" class="btn primary" type="submit">Start scraping</button>
+          <p id="no-token-hint" class="hint" hidden>
+            No GitHub token saved, so this button opens GitHub, where you click <b>Run workflow</b>.
+            To start exports directly from this page, add a token in <a href="#settings">Settings</a>.
+          </p>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="runs-title">
+        <div class="card-head">
+          <h2 id="runs-title">Recent runs</h2>
+          <button id="runs-refresh" class="btn small" type="button">Refresh</button>
+        </div>
+        <p class="muted small-text">A full-site scrape can take up to an hour. When a run finishes, its file appears under Downloads.</p>
+        <ul id="runs" class="runs" aria-live="polite"></ul>
+      </section>
+    </div>
+
+    <section class="card" aria-labelledby="files-title">
+      <div class="card-head">
+        <h2 id="files-title">Downloads</h2>
+        <button id="files-refresh" class="btn small" type="button">Refresh</button>
+      </div>
+      <div id="files"></div>
+    </section>
+
+    <section class="card" id="settings" aria-labelledby="settings-title">
+      <details id="settings-details">
+        <summary><h2 id="settings-title">Settings</h2></summary>
+        <div class="settings-body">
+          <p class="muted">
+            To start scrapes from this page (and see runs of a private repo), paste a GitHub
+            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">fine-grained personal access token</a>.
+            Give it access to <b>only this repository</b>, with permission <b>Actions: Read and write</b>.
+            The token is stored only in this browser.
+          </p>
+          <form id="token-form" class="token-row">
+            <input id="token" type="password" placeholder="github_pat_..." autocomplete="off" aria-label="GitHub token">
+            <button class="btn" type="submit">Save</button>
+            <button id="token-clear" class="btn ghost" type="button">Remove</button>
+          </form>
+          <p id="token-status" class="muted small-text"></p>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

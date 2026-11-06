@@ -1,0 +1,8 @@
+vroda.jar
+node_modules/
+output/
+_site/
+downloaded/
+/vroda-*.xlsx
+.idea/
+.DS_Store
