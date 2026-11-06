@@ -4,8 +4,17 @@ Scrapes online shops and exports their product catalog to Excel (`.xlsx`).
 You control it from a **Telegram bot**. The scraping runs in **GitHub Actions**, and the bot runs on
 **Cloudflare Workers**. Both are free.
 
-Right now it supports one source, **vroda-ua.com**. It is a JavaScript port of the old `vroda.jar`
-and produces the same Excel file (same columns, same order, same values).
+Supported websites (all produce the same Excel columns):
+
+| Source | Website | Languages | Notes |
+|---|---|---|---|
+| `vroda` | vroda-ua.com | ua, ru | JavaScript port of the old `vroda.jar` (same columns, order and values; old-price bug fixed) |
+| `jrl` | jrl.in.ua | ua | Official JRL store, about 370 products, takes under a minute |
+
+jrl.in.ua differences: there is no specifications table (`vendor` is always JRL; real attributes the
+shop fills in become columns, placeholders like "атрибут 1" are skipped), `available` comes from the visible stock label because the hidden
+schema data says "InStock" even for sold-out products, and descriptions that are too long for an
+Excel cell (Word-pasted HTML) have their inline styles removed instead of being cut off.
 
 ## How it works
 
@@ -102,6 +111,7 @@ npm run scrape                                    # asks questions, like the jar
 npm run scrape -- vroda --lang ua --mode all      # whole site -> output/vroda-UA.xlsx
 npm run scrape -- vroda --lang ru --mode category --url https://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki
 npm run scrape -- vroda --lang ua --mode all --limit 20   # quick test: only the first 20 products
+npm run scrape -- jrl --lang ua --mode all        # jrl.in.ua -> output/jrl-UA.xlsx
 ```
 
 Add `--telegram-chat <your id>` (with `TELEGRAM_BOT_TOKEN` set in the environment) to get the

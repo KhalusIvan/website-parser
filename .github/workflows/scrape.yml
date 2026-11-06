@@ -10,7 +10,7 @@ on:
       source:
         description: Website
         type: choice
-        options: [vroda] # add new source ids here
+        options: [vroda, jrl] # add new source ids here
         default: vroda
       lang:
         description: Language

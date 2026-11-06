@@ -19,5 +19,24 @@ export default [
         "needsUrl": true
       }
     }
+  },
+  {
+    "id": "jrl",
+    "name": "JRL",
+    "website": "https://jrl.in.ua",
+    "description": "Official JRL store: clippers, trimmers, shavers, hair dryers, spare parts and accessories.",
+    "languages": {
+      "ua": "Українська"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
   }
 ];

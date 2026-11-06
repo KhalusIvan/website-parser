@@ -1,8 +1,9 @@
 // Registry of all supported websites.
 // To add a new source: create src/sources/<id>.js (see vroda.js for the shape) and add it here.
 import vroda from './vroda.js';
+import jrl from './jrl.js';
 
-export const sources = [vroda];
+export const sources = [vroda, jrl];
 
 export function getSource(id) {
   const source = sources.find((s) => s.id === id);

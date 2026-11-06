@@ -65,15 +65,18 @@ test('strangers are refused but can see their ID; nothing is started', async () 
   assert.equal(apis.calls.filter((c) => c.service === 'github').length, 0);
 });
 
-test('whole site: /new -> mode -> language -> starts the workflow', async () => {
+test('whole site: /new -> site -> mode -> language -> starts the workflow', async () => {
   const apis = fakeApis();
   const bot = createBot(ENV, { fetch: apis.fetch });
 
   await bot.handleUpdate(message('/new'));
-  assert.deepEqual(buttonData(apis.sent()[0]), ['mode:vroda:all', 'mode:vroda:category']); // only one site -> skips site menu
+  assert.deepEqual(buttonData(apis.sent()[0]), ['src:vroda', 'src:jrl']);
+
+  await bot.handleUpdate(press('src:vroda'));
+  assert.deepEqual(buttonData(apis.sent()[1]), ['mode:vroda:all', 'mode:vroda:category']);
 
   await bot.handleUpdate(press('mode:vroda:all'));
-  assert.deepEqual(buttonData(apis.sent()[1]), ['run:vroda:all:ua', 'run:vroda:all:ru']);
+  assert.deepEqual(buttonData(apis.sent()[2]), ['run:vroda:all:ua', 'run:vroda:all:ru']);
 
   await bot.handleUpdate(press('run:vroda:all:ru'));
   const [dispatch] = apis.dispatches();
@@ -98,6 +101,20 @@ test('category: send a link -> pick language -> starts the workflow with that UR
   // Telegram sends back the bot's question (plain text) with the button press.
   await bot.handleUpdate(press('url:ua', `Vroda · ${url}\nWhich language?`));
   assert.deepEqual(apis.dispatches()[0].body.inputs, { source: 'vroda', lang: 'ua', mode: 'category', url, chat_id: '4242' });
+});
+
+test('a site with one language skips the language question (jrl)', async () => {
+  const apis = fakeApis();
+  const bot = createBot(ENV, { fetch: apis.fetch });
+
+  await bot.handleUpdate(press('mode:jrl:all'));
+  assert.deepEqual(apis.dispatches()[0].body.inputs, { source: 'jrl', lang: 'ua', mode: 'all', url: '', chat_id: '4242' });
+  assert.match(apis.sent().at(-1).body.text, /Started.*JRL · Українська · whole site/s);
+
+  await bot.handleUpdate(message('https://jrl.in.ua/komplektuyuchi/mashinki-1/'));
+  assert.deepEqual(apis.dispatches()[1].body.inputs, {
+    source: 'jrl', lang: 'ua', mode: 'category', url: 'https://jrl.in.ua/komplektuyuchi/mashinki-1/', chat_id: '4242',
+  });
 });
 
 test('unknown website and GitHub errors are reported in the chat', async () => {
