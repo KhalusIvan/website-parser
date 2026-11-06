@@ -9,7 +9,7 @@ GITHUB_REPO = "KhalusIvan/website-parser"
 GITHUB_REF = "main"
 GITHUB_WORKFLOW = "scrape.yml"
 # Telegram user IDs that may use the bot, comma-separated. Send /id to the bot to see yours.
-ALLOWED_USER_IDS = "592562375"
+ALLOWED_USER_IDS = "592562375,542453810"
 
 # Secrets are not stored in this file. Set them once with:
 #   npx wrangler secret put TELEGRAM_BOT_TOKEN --config bot/wrangler.toml
