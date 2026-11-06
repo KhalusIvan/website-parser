@@ -125,8 +125,11 @@ npm run scrape -- vroda --lang ua --mode category --url https://vroda-ua.com/zas
 npm run compare -- vroda-UA.xlsx output/vroda-UA-zasobi-dlya-doglyadu-perukars-koji-tehniki.xlsx
 ```
 
-Note: vroda-ua.com shows a *random* "old price" on some products (a different one on every page
-load). For those products the `price special` column can differ between any two runs, even of the same scraper.
+Known difference: `vroda.jar` read the first "old price" anywhere on the product page. That is often
+the old price of a random product in the *related products* carousel (a different one on every page
+load), so the jar's `price` / `price special` columns were wrong for many products. This app reads
+the old price only from the product's own price block, so expect price differences when comparing
+with jar exports. Products with a real discount: `price` = old price, `price special` = current price.
 
 ## Adding a new website
 

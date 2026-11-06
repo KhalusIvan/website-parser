@@ -96,7 +96,10 @@ async function parseProduct(link, category, ctx) {
       images: eachAttr($, 'img.main-image', 'data-zoom-image').join(';'),
       description: htmlFirst($, 'div#tab-description', ''),
       price: contentFirst($, 'meta[itemprop="price"]', ''),
-      priceSpecial: textFirst($, 'span.price-old', '').replace(/[^0-9.]/g, ''),
+      // Only the product's own price block. The jar used the first span.price-old on the whole page,
+      // which is often a random product from the "related products" carousel (a different one on
+      // every page load) - that's why its old prices looked random.
+      priceSpecial: textFirst($, '#product span.price-old', '').replace(/[^0-9.]/g, ''),
       sku: contentFirst($, 'meta[itemprop="sku"]', ''),
       parent: '',
       available: exists($, 'link[href="https://schema.org/InStock"]'),

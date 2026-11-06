@@ -105,3 +105,12 @@ test('scrape() skips failing products and writes file + summary', async () => {
   assert.equal(summary.failed, 1);
   assert.equal(summary.file, 'vroda-UA-kategoriya.xlsx');
 });
+
+test('old price of a related product (random carousel) is ignored', async () => {
+  // Same product without its own discount; only the related-products carousel has an old price.
+  const html = fixture('vroda-product.html').replace(/<span class="price-old"><span class="autocalc-product-price">.*?<\/span><\/span>/, '');
+  const http = { getHtml: async (url) => cheerio.load(html, { baseURI: url }) };
+  const p = await vroda.parseProduct('https://vroda-ua.com/p', 'C', ctx(http));
+  assert.equal(p.price, '2368.00');
+  assert.equal(p.priceSpecial, '');
+});
