@@ -23,6 +23,8 @@ export function outputName({ source, lang, mode, url }) {
 /**
  * Runs a full scrape and writes the Excel file.
  * Returns a summary { file, products, failed, ... } that is also saved next to the file as JSON.
+ * `onProgress` is called with { phase: 'collect' } and then { phase: 'products', done, total, failed }
+ * after every product (used for Telegram progress messages).
  */
 export async function scrape({
   source: sourceId,
@@ -34,6 +36,7 @@ export async function scrape({
   limit = 0,
   log = console.log,
   http = createHttp({ log }),
+  onProgress,
 }) {
   const source = getSource(sourceId);
   if (!source.languages[lang]) {
@@ -45,7 +48,15 @@ export async function scrape({
 
   const startedAt = new Date();
   const ctx = { http, log };
+  const progress = (info) => {
+    try {
+      onProgress?.(info);
+    } catch (err) {
+      log(`Progress callback failed: ${err.message}`);
+    }
+  };
 
+  progress({ phase: 'collect' });
   log(`Collecting product links from ${source.name} (${lang}, ${mode})...`);
   const links = await source.collectLinks({ lang, mode, url }, ctx);
   let entries = [...links.entries()];
@@ -53,15 +64,21 @@ export async function scrape({
   log(`Found ${entries.length} products`);
 
   const threads = concurrency ?? source.concurrency ?? 2;
+  const total = entries.length;
   let done = 0;
+  let failedCount = 0;
+  progress({ phase: 'products', done, total, failed: failedCount });
   const results = await mapPool(entries, threads, async ([link, extra], index) => {
     try {
       const product = await source.parseProduct(link, extra, ctx);
-      log(`[${++done}/${entries.length}] ${link} (N-${index}) collected`);
+      log(`[${++done}/${total}] ${link} (N-${index}) collected`);
       return product;
     } catch (err) {
-      log(`[${++done}/${entries.length}] ${link} (N-${index}) ERROR: ${err.message}`);
+      failedCount++;
+      log(`[${++done}/${total}] ${link} (N-${index}) ERROR: ${err.message}`);
       throw err;
+    } finally {
+      progress({ phase: 'products', done, total, failed: failedCount });
     }
   });
 

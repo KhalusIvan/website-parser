@@ -1,8 +1,11 @@
 vroda.jar
 node_modules/
 output/
-_site/
-downloaded/
+.wrangler/
 /vroda-*.xlsx
 .idea/
 .DS_Store
+# local secrets (wrangler dev reads bot/.dev.vars) - never commit
+.dev.vars*
+.env
+.env.*
