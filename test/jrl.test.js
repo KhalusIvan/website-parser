@@ -1,9 +1,13 @@
 // Offline tests for the jrl.in.ua source (no network): node --test test/
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import * as cheerio from 'cheerio';
+import ExcelJS from 'exceljs';
 import jrl, { fitDescription, money, normalizeLink } from '../src/sources/jrl.js';
+import { scrape } from '../src/scrape.js';
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 
@@ -98,4 +102,33 @@ test('helpers: money, normalizeLink, fitDescription', () => {
   assert.equal(fitDescription(short), short); // fits in an Excel cell -> unchanged
   const word = `<p class="MsoNormal" style="${'background-image: initial; '.repeat(1500)}">Text<o:p></o:p></p>`;
   assert.equal(fitDescription(word), '<p class="MsoNormal">Text</p>'); // too long -> styles removed, text kept
+});
+
+test('colour variants linked from product pages are scraped too, right after their product', async () => {
+  const http = fakeHttp({
+    'https://jrl.in.ua/grebeni': 'jrl-grebeni.html', // lists combs A and C
+    'https://jrl.in.ua/grebeni?page=2': 'jrl-empty.html',
+    'https://jrl.in.ua/grebeni/a': 'jrl-comb-a.html', // colours: B (new), A (itself), C (already listed)
+    'https://jrl.in.ua/grebeni/b': 'jrl-comb-b.html', // colours: A, D (new)
+    'https://jrl.in.ua/grebeni/c': 'jrl-product.html',
+    'https://jrl.in.ua/grebeni/d': 'jrl-comb-d.html',
+  });
+  const outDir = mkdtempSync(path.join(tmpdir(), 'wp-'));
+  const summary = await scrape({ source: 'jrl', lang: 'ua', mode: 'category', url: 'https://jrl.in.ua/grebeni', outDir, http, log: () => {} });
+  assert.equal(summary.products, 4);
+  assert.equal(summary.failed, 0);
+
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(path.join(outDir, summary.file));
+  const rows = [];
+  wb.getWorksheet('Sheet0').eachRow((r, i) => i > 1 && rows.push([r.getCell(1).text, r.getCell(2).text, r.getCell(3).text, r.getCell(10).text]));
+  assert.deepEqual(rows, [
+    ['https://jrl.in.ua/grebeni/a', 'Гребінець A', 'Гребінці для волосся', '+'],
+    ['https://jrl.in.ua/grebeni/b', 'Гребінець B', 'Гребінці для волосся', '+'], // found on A, inherits its category
+    ['https://jrl.in.ua/grebeni/d', 'Гребінець D', 'Гребінці для волосся', '-'], // found on B
+    ['https://jrl.in.ua/grebeni/c', 'Професійна машинка для стрижки JRL ONYX', 'Гребінці для волосся', '+'],
+  ]);
+  // every page fetched once
+  const pages = http.calls.filter((u) => /grebeni\/[a-d]$/.test(u));
+  assert.equal(pages.length, new Set(pages).size);
 });

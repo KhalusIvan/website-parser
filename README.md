@@ -9,9 +9,10 @@ Supported websites (all produce the same Excel columns):
 | Source | Website | Languages | Notes |
 |---|---|---|---|
 | `vroda` | vroda-ua.com | ua, ru | JavaScript port of the old `vroda.jar` (same columns, order and values; old-price bug fixed) |
-| `jrl` | jrl.in.ua | ua | Official JRL store, about 370 products, takes under a minute |
+| `jrl` | jrl.in.ua | ua | Official JRL store, about 420 products, takes 1-2 minutes |
 
-jrl.in.ua differences: there is no specifications table (`vendor` is always JRL; real attributes the
+jrl.in.ua differences: category pages show only one colour of each comb; the other colours are
+linked from its product page ("Колір"), so they are followed and exported right after it. There is no specifications table (`vendor` is always JRL; real attributes the
 shop fills in become columns, placeholders like "атрибут 1" are skipped), `available` comes from the visible stock label because the hidden
 schema data says "InStock" even for sold-out products, and descriptions that are too long for an
 Excel cell (Word-pasted HTML) have their inline styles removed instead of being cut off.
@@ -156,8 +157,9 @@ with jar exports. Products with a real discount: `price` = old price, `price spe
      concurrency: 2,
      // returns Map(productUrl -> category name)
      async collectLinks({ lang, mode, url }, { http, log }) { ... },
-     // returns createProduct({...}) for one product page
-     async parseProduct(link, category, { http, log }) { ... },
+     // returns createProduct({...}) for one product page; call addProduct(link, extra) for more
+     // products found on the page that aren't in any category (e.g. colour variants)
+     async parseProduct(link, category, { http, log, addProduct }) { ... },
    };
    ```
    `http.getHtml(url)` returns a [cheerio](https://cheerio.js.org/) document (jQuery-like `$`).

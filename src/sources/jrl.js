@@ -4,6 +4,8 @@
 //  - A product can be listed in several categories; it is exported once, with the first category found.
 //  - Products without a friendly URL link to index.php?route=product/product&path=..&product_id=..
 //    where "path" depends on the category - it is removed so each product has one link.
+//  - Colour variants are usually not listed in categories (only one colour of each comb is) but
+//    linked from the product page ("Колір"); they are followed and exported after that product.
 //  - Stock: the hidden schema.org data says "InStock" even for sold-out products, so the visible
 //    label is used instead ("В наявності" = in stock, "Немає в наявності" = sold out).
 //  - There is no specifications table; real attributes the shop fills in are exported as columns
@@ -24,7 +26,8 @@ const SEL = {
   breadcrumb: '.breadcrumb li',
   images: 'a.main-image, a.dop-img',
   inStock: '#product .stock_status_success',
-  oldPrice: '#product .price .price-old',
+  oldPrice: '#product .price:not(.pds) .price-old', // .price.pds is the colour switcher, not a price
+  colourVariants: '#product .pds a[href]',
   attributes: '#tab-specification .short-attribute',
   manufacturer: 'a[href*="route=product/manufacturer/info"]',
 };
@@ -131,6 +134,13 @@ function attributes($) {
 
 async function parseProduct(link, extra = {}, ctx) {
   const $ = await ctx.http.getHtml(link);
+  // Colour variants (other colours of a comb, ...) often aren't listed in any category - only
+  // linked from here. Report them so they get scraped too, with this product's category.
+  const variants = [...new Set($(SEL.colourVariants).map((_, el) => $(el).prop('href')).get())];
+  for (const href of variants) {
+    ctx.addProduct?.(normalizeLink(href), { category: extra.category ?? '', listPrice: '', listSpecial: '' });
+  }
+
   const specs = attributes($);
   specs.vendor =
     $(SEL.manufacturer)

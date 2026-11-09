@@ -14,6 +14,15 @@ function slugFromUrl(url) {
   }
 }
 
+/** Safety limit for products found on product pages that link to more products, and so on. */
+const MAX_ROUNDS = 10;
+
+/** Sorts [3] < [3, 0] < [3, 1] < [4]: products found on a page come right after it. */
+function compareOrder(a, b) {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i] - b[i];
+  return a.length - b.length;
+}
+
 /** Output file name (without extension), e.g. "vroda-UA" or "vroda-UA-maslo-dlya-...". */
 export function outputName({ source, lang, mode, url }) {
   const base = `${source}-${lang.toUpperCase()}`;
@@ -63,27 +72,56 @@ export async function scrape({
   if (limit > 0) entries = entries.slice(0, limit);
   log(`Found ${entries.length} products`);
 
+  // A source can report more products it finds on a product page (e.g. colour variants that are
+  // not listed in any category) with ctx.addProduct(link, extra). They are scraped in further
+  // rounds and placed right after the product that linked them. Not used with --limit (quick tests).
   const threads = concurrency ?? source.concurrency ?? 2;
-  const total = entries.length;
+  const known = new Set(entries.map(([link]) => link));
+  let queue = entries.map(([link, extra], i) => ({ link, extra, order: [i], found: [] }));
+  const scraped = []; // { order, product }
+  const failed = [];
+  let total = queue.length;
   let done = 0;
   let failedCount = 0;
+  let counter = 0;
   progress({ phase: 'products', done, total, failed: failedCount });
-  const results = await mapPool(entries, threads, async ([link, extra], index) => {
-    try {
-      const product = await source.parseProduct(link, extra, ctx);
-      log(`[${++done}/${total}] ${link} (N-${index}) collected`);
-      return product;
-    } catch (err) {
-      failedCount++;
-      log(`[${++done}/${total}] ${link} (N-${index}) ERROR: ${err.message}`);
-      throw err;
-    } finally {
-      progress({ phase: 'products', done, total, failed: failedCount });
-    }
-  });
 
-  const products = results.filter((r) => r.value).map((r) => r.value);
-  const failed = entries.filter((_, i) => results[i].error).map(([link], i) => link);
+  for (let round = 1; queue.length && round <= MAX_ROUNDS; round++) {
+    const results = await mapPool(queue, threads, async (item) => {
+      const n = counter++;
+      const pageCtx = { ...ctx, addProduct: (link, extra) => item.found.push({ link, extra }) };
+      try {
+        const product = await source.parseProduct(item.link, item.extra, pageCtx);
+        log(`[${++done}/${total}] ${item.link} (N-${n}) collected`);
+        return product;
+      } catch (err) {
+        failedCount++;
+        log(`[${++done}/${total}] ${item.link} (N-${n}) ERROR: ${err.message}`);
+        throw err;
+      } finally {
+        progress({ phase: 'products', done, total, failed: failedCount });
+      }
+    });
+
+    // Next round: new links, taken in file order so the result doesn't depend on timing.
+    const next = [];
+    queue.forEach((item, i) => {
+      if (results[i].value) scraped.push({ order: item.order, product: results[i].value });
+      else failed.push(item.link);
+      if (limit > 0) return;
+      for (const { link, extra } of item.found) {
+        if (known.has(link)) continue;
+        known.add(link);
+        next.push({ link, extra, order: [...item.order, next.length], found: [] });
+      }
+    });
+    if (next.length) log(`Found ${next.length} more products on product pages`);
+    total += next.length;
+    queue = next;
+  }
+
+  scraped.sort((a, b) => compareOrder(a.order, b.order));
+  const products = scraped.map((s) => s.product);
 
   const name = outputName({ source: source.id, lang, mode, url });
   const file = path.join(outDir, `${name}.xlsx`);
