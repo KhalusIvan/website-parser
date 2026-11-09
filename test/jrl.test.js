@@ -8,6 +8,7 @@ import * as cheerio from 'cheerio';
 import ExcelJS from 'exceljs';
 import jrl, { fitDescription, money, normalizeLink } from '../src/sources/jrl.js';
 import { scrape } from '../src/scrape.js';
+import { VRODA_UA_COLUMNS } from '../src/sources/vroda-columns.js';
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 
@@ -120,8 +121,14 @@ test('colour variants linked from product pages are scraped too, right after the
 
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(path.join(outDir, summary.file));
+  const sheet = wb.getWorksheet('Sheet0');
+  // every vroda column, in the same order, even though jrl fills in only vendor (+ the real
+  // attribute "Гарантія" of product C, sorted in among them)
+  const specs = sheet.getRow(1).values.slice(11);
+  assert.deepEqual(specs.filter((name) => name !== 'Гарантія'), VRODA_UA_COLUMNS);
+  assert.equal(specs.length, VRODA_UA_COLUMNS.length + 1);
   const rows = [];
-  wb.getWorksheet('Sheet0').eachRow((r, i) => i > 1 && rows.push([r.getCell(1).text, r.getCell(2).text, r.getCell(3).text, r.getCell(10).text]));
+  sheet.eachRow((r, i) => i > 1 && rows.push([r.getCell(1).text, r.getCell(2).text, r.getCell(3).text, r.getCell(10).text]));
   assert.deepEqual(rows, [
     ['https://jrl.in.ua/grebeni/a', 'Гребінець A', 'Гребінці для волосся', '+'],
     ['https://jrl.in.ua/grebeni/b', 'Гребінець B', 'Гребінці для волосся', '+'], // found on A, inherits its category

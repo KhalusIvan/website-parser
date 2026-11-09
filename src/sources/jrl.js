@@ -10,9 +10,10 @@
 //    label is used instead ("В наявності" = in stock, "Немає в наявності" = sold out).
 //  - There is no specifications table; real attributes the shop fills in are exported as columns
 //    (placeholders like "атрибут 1" are skipped). vendor is always JRL (the official JRL store; only
-//    a couple of product pages link to the brand).
+//    a couple of product pages link to the brand). All vroda spec columns are in the file, mostly empty.
 import { contentFirst, eachAttr, exists, htmlFirst, normText, textFirst, trimChars } from '../core/html.js';
 import { createProduct, movePrices } from '../core/product.js';
+import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 const HOME = 'https://jrl.in.ua/';
 const MAX_PAGES = 200;
@@ -188,6 +189,8 @@ export default {
     category: { label: 'One category (paste URL)', needsUrl: true },
   },
   concurrency: 2,
+  // Same spec columns as the vroda file, even if empty here, so both files have the same layout.
+  columns: { ua: VRODA_UA_COLUMNS },
 
   /** Returns Map(productLink -> { category, listPrice, listSpecial }). */
   async collectLinks({ mode, url }, ctx) {

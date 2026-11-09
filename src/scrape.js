@@ -125,7 +125,7 @@ export async function scrape({
 
   const name = outputName({ source: source.id, lang, mode, url });
   const file = path.join(outDir, `${name}.xlsx`);
-  await writeXlsx(file, products, { log });
+  await writeXlsx(file, products, { log, columns: source.columns?.[lang] });
 
   const summary = {
     file: path.basename(file),

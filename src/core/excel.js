@@ -18,9 +18,12 @@ export const BASE_COLUMNS = [
   ['available', (p) => (p.available ? '+' : '-')],
 ];
 
-/** All spec names used by any product, sorted like Java's String.compareTo (UTF-16 order). */
-export function specColumns(products) {
-  const names = new Set();
+/**
+ * All spec names used by any product plus `always` (columns a source exports even when empty),
+ * sorted like Java's String.compareTo (UTF-16 order).
+ */
+export function specColumns(products, always = []) {
+  const names = new Set(always);
   for (const p of products) for (const key of Object.keys(p.specs ?? {})) names.add(key);
   return [...names].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
@@ -33,10 +36,10 @@ function cell(value, product, column, log) {
 }
 
 /** Builds the workbook (one sheet "Sheet0", every value as text). */
-export function buildWorkbook(products, { log } = {}) {
+export function buildWorkbook(products, { log, columns } = {}) {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Sheet0');
-  const specs = specColumns(products);
+  const specs = specColumns(products, columns);
 
   sheet.addRow([...BASE_COLUMNS.map(([name]) => name), ...specs]);
   for (const p of products) {

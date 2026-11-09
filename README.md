@@ -12,8 +12,10 @@ Supported websites (all produce the same Excel columns):
 | `jrl` | jrl.in.ua | ua | Official JRL store, about 420 products, takes 1-2 minutes |
 
 jrl.in.ua differences: category pages show only one colour of each comb; the other colours are
-linked from its product page ("Колір"), so they are followed and exported right after it. There is no specifications table (`vendor` is always JRL; real attributes the
-shop fills in become columns, placeholders like "атрибут 1" are skipped), `available` comes from the visible stock label because the hidden
+linked from its product page ("Колір"), so they are followed and exported right after it. The file
+has all the spec columns of the vroda file (`src/sources/vroda-columns.js`), but the site has no
+specifications table, so they stay empty: `vendor` is always JRL, and real attributes the
+shop fills in become columns (placeholders like "атрибут 1" are skipped), `available` comes from the visible stock label because the hidden
 schema data says "InStock" even for sold-out products, and descriptions that are too long for an
 Excel cell (Word-pasted HTML) have their inline styles removed instead of being cut off.
 
@@ -155,6 +157,7 @@ with jar exports. Products with a real discount: `price` = old price, `price spe
      modes: { all: { label: 'Whole site', needsUrl: false },
               category: { label: 'One category (paste URL)', needsUrl: true } },
      concurrency: 2,
+     columns: { ua: VRODA_UA_COLUMNS },  // optional: spec columns to export even if empty
      // returns Map(productUrl -> category name)
      async collectLinks({ lang, mode, url }, { http, log }) { ... },
      // returns createProduct({...}) for one product page; call addProduct(link, extra) for more
