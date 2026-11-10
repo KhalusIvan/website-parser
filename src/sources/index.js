@@ -11,8 +11,9 @@ import kucheryawiy from './kucheryawiy.js';
 import moser from './moser.js';
 import spl from './spl.js';
 import spl4barber from './spl4barber.js';
+import gloriana from './gloriana.js';
 
-export const sources = [vroda, jrl, mrd, babyliss, gama, immortal, jaguar, kucheryawiy, moser, spl, spl4barber];
+export const sources = [vroda, jrl, mrd, babyliss, gama, immortal, jaguar, kucheryawiy, moser, spl, spl4barber, gloriana];
 
 export function getSource(id) {
   const source = sources.find((s) => s.id === id);

@@ -19,6 +19,7 @@ Supported websites (all produce the same Excel columns):
 | `moser` | moser-animal.com | ua | Moser / WAHL animal clippers, about 155 products, about 4 minutes |
 | `spl` | spl-group.com.ua | ua, ru | SPL Group, about 1,500 products, about 15 minutes |
 | `spl4barber` | spl4barber.com.ua | ua | Wahl barber shop, about 220 products (slow site) |
+| `gloriana` | glorianapro.com | ua, ru | Gloriana Pro dryers and stylers, about 30 products, under a minute |
 
 All of them: `price` = regular price and `price special` = sale price; `available` comes from the
 visible stock label (pre-order and "expected" count as not available, because many sites' hidden
@@ -28,7 +29,7 @@ have all vroda spec columns plus the shop's own specs. Where products link other
 category lists (colour variants, sizes, scissor pairs), those are followed too. Gama, Moser and
 SPL4Barber share one server that blocks IPs which load it too fast: don't test them in parallel.
 Shared code per shop platform is in `src/sources/lib/` (OpenCart "upstore": mrd, immortal,
-kucheryawiy; OpenCart "luxshop": jaguar, moser; WooCommerce: babyliss, spl4barber).
+kucheryawiy, gloriana; OpenCart "luxshop": jaguar, moser; WooCommerce: babyliss, spl4barber).
 
 Known gaps, as of 2026-11-10: kucheryawiy has about 300 live products that are in no category (only
 in its sitemap) and these are not exported; SPL Group has 2 such products (mannequins). On gama, 2

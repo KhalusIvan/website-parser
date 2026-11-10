@@ -214,5 +214,25 @@ export default [
         "needsUrl": true
       }
     }
+  },
+  {
+    "id": "gloriana",
+    "name": "Gloriana Pro",
+    "website": "https://glorianapro.com",
+    "description": "Official Gloriana Pro store: hair dryers, straighteners, curling irons, stylers and accessories.",
+    "languages": {
+      "ua": "Українська",
+      "ru": "Русский"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
   }
 ];

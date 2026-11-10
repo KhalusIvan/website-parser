@@ -1,5 +1,5 @@
 // Shared code for OpenCart shops with the "upstore" theme (mrd-pro.com.ua, immortal.com.ua,
-// kucheryawiy.com.ua). createUpstoreSource(settings) returns a source object; each site file only
+// kucheryawiy.com.ua, glorianapro.com). createUpstoreSource(settings) returns a source object; each site file only
 // passes its settings. What these shops have in common:
 //  - Catalogue menu: top-level <li> items (the selector differs per site) with the subcategories
 //    inside. Subcategories are visited before their parent (deepest first), so a product gets its
