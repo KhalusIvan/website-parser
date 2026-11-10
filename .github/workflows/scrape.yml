@@ -92,7 +92,7 @@ jobs:
         run: |
           [ -z "$TELEGRAM_BOT_TOKEN" ] && exit 0
           [ -f output/.telegram-notified ] && exit 0
-          if [ "$STATUS" = "cancelled" ]; then text="⏹ Scrape cancelled or timed out: $TITLE"; else text="❌ Scrape failed: $TITLE"; fi
+          if [ "$STATUS" = "cancelled" ]; then text="⏹ Збір скасовано або перевищено час: $TITLE"; else text="❌ Збір завершився з помилкою: $TITLE"; fi
           curl -sS -o /dev/null "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${CHAT_ID}" \
             --data-urlencode "text=${text}

@@ -48,7 +48,7 @@ async function ask(question, allowed) {
   }
 }
 
-/** Telegram reporter, when --telegram-chat is given (e.g. "Vroda · Українська · whole site"). */
+/** Telegram reporter, when --telegram-chat is given (e.g. "Vroda · Українська · весь сайт"). */
 function telegramReporter(chatId, source, lang, mode, url) {
   if (!chatId) return null;
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -58,7 +58,7 @@ function telegramReporter(chatId, source, lang, mode, url) {
   }
   const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID } = process.env;
   const runUrl = GITHUB_RUN_ID ? `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}` : '';
-  const title = [source.name, source.languages[lang] ?? lang, mode === 'all' ? 'whole site' : url || mode].join(' · ');
+  const title = [source.name, source.languages[lang] ?? lang, mode === 'all' ? 'весь сайт' : url || mode].join(' · ');
   return createReporter({ telegram: createTelegram({ token, chatId }), title, runUrl });
 }
 

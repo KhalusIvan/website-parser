@@ -61,7 +61,7 @@ test('strangers are refused but can see their ID; nothing is started', async () 
   await bot.handleUpdate({ message: { message_id: 1, from: { id: 999 }, chat: { id: 999 }, text: '/new' } });
   await bot.handleUpdate({ callback_query: { id: 'q', from: { id: 999 }, data: 'run:vroda:all:ua', message: { message_id: 1, chat } } });
 
-  assert.match(apis.sent()[0].body.text, /private bot.*999/s);
+  assert.match(apis.sent()[0].body.text, /приватний бот.*999/s);
   assert.equal(apis.calls.filter((c) => c.service === 'github').length, 0);
 });
 
@@ -85,7 +85,7 @@ test('whole site: /new -> site -> mode -> language -> starts the workflow', asyn
     ref: 'main',
     inputs: { source: 'vroda', lang: 'ru', mode: 'all', url: '', chat_id: '4242' },
   });
-  assert.match(apis.sent().at(-1).body.text, /Started.*Vroda · Русский · whole site/s);
+  assert.match(apis.sent().at(-1).body.text, /Запущено.*Vroda · Русский · весь сайт/s);
 });
 
 test('category: send a link -> pick language -> starts the workflow with that URL', async () => {
@@ -109,7 +109,7 @@ test('a site with one language skips the language question (jrl)', async () => {
 
   await bot.handleUpdate(press('mode:jrl:all'));
   assert.deepEqual(apis.dispatches()[0].body.inputs, { source: 'jrl', lang: 'ua', mode: 'all', url: '', chat_id: '4242' });
-  assert.match(apis.sent().at(-1).body.text, /Started.*JRL · Українська · whole site/s);
+  assert.match(apis.sent().at(-1).body.text, /Запущено.*JRL · Українська · весь сайт/s);
 
   await bot.handleUpdate(message('https://jrl.in.ua/komplektuyuchi/mashinki-1/'));
   assert.deepEqual(apis.dispatches()[1].body.inputs, {
@@ -121,13 +121,13 @@ test('unknown website and GitHub errors are reported in the chat', async () => {
   const apis = fakeApis();
   const bot = createBot(ENV, { fetch: apis.fetch });
   await bot.handleUpdate(message('https://example.com/cat'));
-  assert.match(apis.sent()[0].body.text, /don't know this website/);
+  assert.match(apis.sent()[0].body.text, /не знаю цього сайту/);
 
   const failing = fakeApis();
   const failingFetch = async (url, init) =>
     url.includes('/dispatches') ? Response.json({ message: 'Bad credentials' }, { status: 401 }) : failing.fetch(url, init);
   await createBot(ENV, { fetch: failingFetch }).handleUpdate(press('run:vroda:all:ua'));
-  assert.match(failing.sent().at(-1).body.text, /Could not start.*401: Bad credentials/s);
+  assert.match(failing.sent().at(-1).body.text, /Не вдалося запустити.*401: Bad credentials/s);
 });
 
 test('/status lists runs with a cancel button for running ones', async () => {
@@ -140,8 +140,8 @@ test('/status lists runs with a cancel button for running ones', async () => {
 
   await bot.handleUpdate(message('/status'));
   const status = apis.sent()[0];
-  assert.match(status.body.text, /🔄 .*vroda · ua · all.*running for 20 min/s);
-  assert.match(status.body.text, /✅ .*vroda · ru · all.*success · took 47 min · 3 h ago/s);
+  assert.match(status.body.text, /🔄 .*vroda · ua · all.*триває 20 хв/s);
+  assert.match(status.body.text, /✅ .*vroda · ru · all.*успішно · тривав 47 хв · 3 год тому/s);
   assert.deepEqual(buttonData(status), ['cancel:11', 'status']);
 
   await bot.handleUpdate(press('cancel:11'));
@@ -164,7 +164,7 @@ test('worker rejects webhook calls without the secret and accepts Telegram ones'
       ENV,
     );
     assert.equal(ok.status, 200);
-    assert.match(apis.sent()[0].body.text, /Your Telegram ID: <code>42<\/code>/);
+    assert.match(apis.sent()[0].body.text, /Ваш Telegram ID: <code>42<\/code>/);
   } finally {
     globalThis.fetch = realFetch;
   }
@@ -194,10 +194,10 @@ test('reporter keeps one progress message, then sends the Excel file', async () 
   await reporter.done({ products: 9, failed: 1 }, file);
 
   assert.deepEqual(log.map((entry) => entry[0]), ['send', 'edit', 'edit', 'edit', 'document']);
-  assert.match(log[0][1], /Collecting product links/);
+  assert.match(log[0][1], /Збираю посилання на товари/);
   assert.match(log[1][2], /0 \/ 10 \(0%\)/);
-  assert.match(log[2][2], /6 \/ 10 \(60%\) · 1 failed/);
-  assert.match(log[3][2], /✅ .*Done in 3 min: 9 products, 1 failed/s);
+  assert.match(log[2][2], /6 \/ 10 \(60%\) · помилок: 1/);
+  assert.match(log[3][2], /✅ .*Готово за 3 хв\. Товарів: 9, помилок: 1/s);
   assert.equal(log[4][1], file);
 });
 

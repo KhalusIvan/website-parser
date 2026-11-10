@@ -6,29 +6,50 @@ import SOURCES from './sources.generated.js';
 const URL_RE = /https?:\/\/[^\s<>"']+/i;
 const ACTIVE = new Set(['queued', 'in_progress', 'waiting', 'requested', 'pending']);
 
-// All texts in one place, so they are easy to change or translate.
+// All texts the users see, in one place (Ukrainian).
 const TEXT = {
   help:
-    'I scrape online shops and send you the product catalog as an Excel file.\n\n' +
-    '/new – scrape a whole website\n' +
-    '/status – recent scrapes (and cancel a running one)\n' +
-    'Or just send me a link to a category to scrape only that category.\n\n' +
-    'A whole website takes about 30–60 minutes. I post progress here and send the file when it is ready.',
+    'Я збираю товари з інтернет-магазинів і надсилаю каталог файлом Excel.\n\n' +
+    '/new – зібрати весь сайт або одну категорію\n' +
+    '/status – останні запуски (і скасування поточного)\n' +
+    'Або просто надішліть посилання на категорію, щоб зібрати лише її.\n\n' +
+    'Весь сайт збирається від кількох хвилин до пів години. Я показую тут прогрес і надсилаю файл, коли він готовий.',
   notAllowed: (id) =>
-    `Sorry, this is a private bot.\nYour Telegram ID is <code>${id}</code> – the owner can add it to ALLOWED_USER_IDS.`,
-  chooseSource: 'Which website?',
-  chooseMode: (s) => `<b>${esc(s.name)}</b> – what should I scrape?`,
-  chooseLang: (s, what) => `<b>${esc(s.name)}</b> · ${esc(what)}\nWhich language?`,
-  sendLink: (s) => `Send me a link to a category on ${esc(s.website)}`,
+    `Вибачте, це приватний бот.\nВаш Telegram ID: <code>${id}</code> – власник може додати його в ALLOWED_USER_IDS.`,
+  yourId: (id) => `Ваш Telegram ID: <code>${id}</code>`,
+  chooseSource: 'Який сайт?',
+  chooseMode: (s) => `<b>${esc(s.name)}</b> – що зібрати?`,
+  chooseLang: (s, what) => `<b>${esc(s.name)}</b> · ${esc(what)}\nЯкою мовою?`,
+  sendLink: (s) => `Надішліть посилання на категорію на ${esc(s.website)}`,
   unknownSite: (url) =>
-    `I don't know this website: ${esc(url)}\nI can scrape: ${SOURCES.map((s) => esc(s.website)).join(', ')}`,
-  noCategoryMode: (s) => `${esc(s.name)} can only be scraped as a whole site: /new`,
-  unknown: 'Send /new to start a scrape, or a category link.',
-  starting: (job) => `⏳ Starting: ${esc(job)}…`,
+    `Я не знаю цього сайту: ${esc(url)}\nЯ вмію збирати: ${SOURCES.map((s) => esc(s.website)).join(', ')}`,
+  noCategoryMode: (s) => `${esc(s.name)} можна зібрати лише весь сайт: /new`,
+  unknown: 'Надішліть /new, щоб почати, або посилання на категорію.',
+  starting: (job) => `⏳ Запускаю: ${esc(job)}…`,
   started: (job) =>
-    `✅ <b>Started</b>: ${esc(job)}\nI'll post progress here and send the Excel file when it's done.\n/status – check progress`,
-  startFailed: (job, err) => `❌ Could not start ${esc(job)}\n${esc(err.message)}`,
-  noRuns: 'No scrapes yet. Send /new to start one.',
+    `✅ <b>Запущено</b>: ${esc(job)}\nЯ показуватиму тут прогрес і надішлю файл Excel, коли все буде готово.\n/status – перевірити прогрес`,
+  startFailed: (job, err) => `❌ Не вдалося запустити: ${esc(job)}\n${esc(err.message)}`,
+  noRuns: 'Запусків ще не було. Надішліть /new, щоб почати.',
+  wholeSite: 'весь сайт',
+  modes: { all: 'Весь сайт', category: 'Одна категорія (надіслати посилання)' },
+  running: (time) => `триває ${time}`,
+  waiting: 'очікує запуску',
+  conclusions: { success: 'успішно', failure: 'помилка', cancelled: 'скасовано', timed_out: 'перевищено час' },
+  finished: (result, took, when) => `${result} · тривав ${took} · ${when}`,
+  cancelButton: (n) => `⏹ Скасувати #${n}`,
+  refreshButton: '🔄 Оновити',
+  noAccess: 'Немає доступу',
+  refreshed: 'Оновлено',
+  cancelling: 'Скасовую…',
+  unknownButton: 'Невідома кнопка',
+  linkLost: 'Посилання не знайдено, надішліть його ще раз',
+  unknownSource: (id) => `Невідомий сайт "${id}"`,
+  commands: {
+    new: 'Зібрати сайт або категорію',
+    status: 'Останні запуски',
+    help: 'Як користуватися ботом',
+    id: 'Мій Telegram ID',
+  },
 };
 
 const esc = (value) =>
@@ -44,28 +65,30 @@ const hostOf = (url) => {
 
 const sourceById = (id) => {
   const source = SOURCES.find((s) => s.id === id);
-  if (!source) throw new Error(`Unknown website "${id}"`);
+  if (!source) throw new Error(TEXT.unknownSource(id));
   return source;
 };
 const sourceForUrl = (url) => SOURCES.find((s) => hostOf(s.website) === hostOf(url));
 const urlMode = (source) => Object.keys(source.modes).find((m) => source.modes[m].needsUrl);
 
-/** "Vroda · Українська · whole site" or "Vroda · Русский · https://..." */
+/** "Vroda · Українська · весь сайт" or "Vroda · Русский · https://..." */
 export const jobTitle = (source, mode, lang, url) =>
-  [source.name, source.languages[lang] ?? lang, url || (mode === 'all' ? 'whole site' : mode)].join(' · ');
+  [source.name, source.languages[lang] ?? lang, url || (mode === 'all' ? TEXT.wholeSite : mode)].join(' · ');
+
+const modeLabel = (source, mode) => TEXT.modes[mode] ?? source.modes[mode]?.label ?? mode;
 
 function minutes(ms) {
   const m = Math.max(0, Math.round(ms / 60000));
-  if (m < 60) return `${m} min`;
-  return `${Math.floor(m / 60)} h ${m % 60} min`;
+  if (m < 60) return `${m} хв`;
+  return `${Math.floor(m / 60)} год ${m % 60} хв`;
 }
 
 function ago(date, now) {
   const m = Math.round((now - Date.parse(date)) / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m} min ago`;
-  if (m < 48 * 60) return `${Math.round(m / 60)} h ago`;
-  return `${Math.round(m / 1440)} days ago`;
+  if (m < 1) return 'щойно';
+  if (m < 60) return `${m} хв тому`;
+  if (m < 48 * 60) return `${Math.round(m / 60)} год тому`;
+  return `${Math.round(m / 1440)} дн. тому`;
 }
 
 /** Telegram checks this secret on every webhook call, so only Telegram can talk to the worker. */
@@ -169,7 +192,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
   function modeMenu(source) {
     return {
       text: TEXT.chooseMode(source),
-      extra: buttons(Object.entries(source.modes).map(([id, m]) => [m.label, `mode:${source.id}:${id}`])),
+      extra: buttons(Object.keys(source.modes).map((id) => [modeLabel(source, id), `mode:${source.id}:${id}`])),
     };
   }
 
@@ -206,19 +229,20 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
       let state;
       if (active) {
         icon = run.status === 'in_progress' ? '🔄' : '⏳';
-        state = run.status === 'in_progress' ? `running for ${minutes(now() - Date.parse(started))}` : 'waiting to start';
+        state = run.status === 'in_progress' ? TEXT.running(minutes(now() - Date.parse(started))) : TEXT.waiting;
       } else {
         icon = { success: '✅', failure: '❌', cancelled: '⏹' }[run.conclusion] ?? '⚠️';
         const took = minutes(Date.parse(run.updated_at) - Date.parse(started));
-        state = `${run.conclusion ?? run.status} · took ${took} · ${ago(run.updated_at, now())}`;
+        const result = TEXT.conclusions[run.conclusion] ?? run.conclusion ?? run.status;
+        state = TEXT.finished(result, took, ago(run.updated_at, now()));
       }
       return `${icon} <a href="${esc(run.html_url)}">${esc(run.display_title ?? run.name)}</a>\n      ${state}`;
     });
 
     const list = runs
       .filter((run) => ACTIVE.has(run.status))
-      .map((run) => [`⏹ Cancel #${run.run_number}`, `cancel:${run.id}`]);
-    list.push(['🔄 Refresh', 'status']);
+      .map((run) => [TEXT.cancelButton(run.run_number), `cancel:${run.id}`]);
+    list.push([TEXT.refreshButton, 'status']);
     return { text: lines.join('\n\n'), extra: buttons(list) };
   }
 
@@ -229,7 +253,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
     const text = message.text.trim();
     const command = text.startsWith('/') ? text.slice(1).split(/[\s@]/)[0].toLowerCase() : '';
 
-    if (command === 'id') return send(chatId, { text: `Your Telegram ID: <code>${message.from.id}</code>` });
+    if (command === 'id') return send(chatId, { text: TEXT.yourId(message.from.id) });
     if (!isAllowed(message.from)) return send(chatId, { text: TEXT.notAllowed(message.from.id) });
 
     if (command === 'start' || command === 'help') {
@@ -256,7 +280,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
   async function onCallback(query) {
     const message = query.message;
     if (!isAllowed(query.from)) {
-      return telegram('answerCallbackQuery', { callback_query_id: query.id, text: 'Not allowed', show_alert: true });
+      return telegram('answerCallbackQuery', { callback_query_id: query.id, text: TEXT.noAccess, show_alert: true });
     }
 
     let notice = '';
@@ -273,7 +297,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
           const langs = Object.keys(source.languages);
           if (source.modes[mode]?.needsUrl) await edit(message, { text: TEXT.sendLink(source) });
           else if (langs.length === 1) await edit(message, await startRun(message.chat.id, source, mode, langs[0]));
-          else await edit(message, langMenu(source, source.modes[mode]?.label ?? mode, `run:${source.id}:${mode}`));
+          else await edit(message, langMenu(source, modeLabel(source, mode), `run:${source.id}:${mode}`));
           break;
         }
 
@@ -288,7 +312,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
         case 'url': {
           const url = (message.text ?? '').match(URL_RE)?.[0] ?? message.reply_to_message?.text?.match(URL_RE)?.[0];
           const source = url && sourceForUrl(url);
-          if (!source) throw new Error('Link not found, please send it again');
+          if (!source) throw new Error(TEXT.linkLost);
           const lang = args[0];
           await edit(message, { text: TEXT.starting(jobTitle(source, urlMode(source), lang, url)) });
           await edit(message, await startRun(message.chat.id, source, urlMode(source), lang, url));
@@ -297,17 +321,17 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
 
         case 'status':
           await edit(message, await statusView());
-          notice = 'Updated';
+          notice = TEXT.refreshed;
           break;
 
         case 'cancel':
           await github(`/actions/runs/${Number(args[0])}/cancel`, { method: 'POST' });
-          notice = 'Cancelling…';
+          notice = TEXT.cancelling;
           await edit(message, await statusView());
           break;
 
         default:
-          notice = 'Unknown button';
+          notice = TEXT.unknownButton;
       }
     } catch (err) {
       notice = err.message.slice(0, 190);
@@ -334,12 +358,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
         allowed_updates: ['message', 'callback_query'],
       });
       await telegram('setMyCommands', {
-        commands: [
-          { command: 'new', description: 'Scrape a whole website' },
-          { command: 'status', description: 'Recent scrapes' },
-          { command: 'help', description: 'How to use the bot' },
-          { command: 'id', description: 'Show my Telegram ID' },
-        ],
+        commands: Object.entries(TEXT.commands).map(([command, description]) => ({ command, description })),
       });
 
       let githubCheck = 'skipped (token or repo missing)';

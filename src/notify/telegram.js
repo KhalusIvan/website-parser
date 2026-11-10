@@ -12,9 +12,9 @@ export const escapeHtml = (value) =>
 
 export function formatDuration(ms) {
   const minutes = Math.round(ms / 60000);
-  if (minutes < 1) return 'less than a minute';
-  if (minutes < 60) return `${minutes} min`;
-  return `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  if (minutes < 1) return 'менш ніж хвилину';
+  if (minutes < 60) return `${minutes} хв`;
+  return `${Math.floor(minutes / 60)} год ${minutes % 60} хв`;
 }
 
 /** Replaces every occurrence of `secret` in `text` with "***". */
@@ -62,7 +62,7 @@ export function createTelegram({ token, chatId, fetch: http = globalThis.fetch }
 export function createReporter({ telegram, title, runUrl = '', log = console.log, intervalMs = 30_000, now = Date.now }) {
   const startedAt = now();
   const head = (icon) => `${icon} <b>${escapeHtml(title)}</b>`;
-  const runLink = runUrl ? `\n<a href="${escapeHtml(runUrl)}">Open the run on GitHub</a>` : '';
+  const runLink = runUrl ? `\n<a href="${escapeHtml(runUrl)}">Відкрити запуск на GitHub</a>` : '';
   let messageId = null;
   let lastText = '';
   let lastShownAt = 0;
@@ -86,7 +86,7 @@ export function createReporter({ telegram, title, runUrl = '', log = console.log
 
   return {
     start() {
-      return show(`${head('🔄')}\nCollecting product links…${runLink}`);
+      return show(`${head('🔄')}\nЗбираю посилання на товари…${runLink}`);
     },
 
     /** Pass as `onProgress` to scrape(). Updates the message at most every `intervalMs`. */
@@ -95,34 +95,34 @@ export function createReporter({ telegram, title, runUrl = '', log = console.log
       const { done, total, failed } = info;
       if (done > 0 && done < total && now() - lastShownAt < intervalMs) return;
       const percent = total ? Math.floor((done / total) * 100) : 100;
-      const failedText = failed ? ` · ${failed} failed` : '';
-      show(`${head('🔄')}\nScraping products: ${done} / ${total} (${percent}%)${failedText}${runLink}`);
+      const failedText = failed ? ` · помилок: ${failed}` : '';
+      show(`${head('🔄')}\nЗбираю товари: ${done} / ${total} (${percent}%)${failedText}${runLink}`);
     },
 
     done(summary, filePath) {
       const took = formatDuration(now() - startedAt);
-      if (!summary.products) return show(`${head('⚠️')}\nNo products found (${took}). Check the link.${runLink}`);
+      if (!summary.products) return show(`${head('⚠️')}\nТоварів не знайдено (${took}). Перевірте посилання.${runLink}`);
 
-      const counts = `${summary.products} products${summary.failed ? `, ${summary.failed} failed` : ''}`;
-      show(`${head('✅')}\nDone in ${took}: ${counts}.`);
+      const counts = `Товарів: ${summary.products}${summary.failed ? `, помилок: ${summary.failed}` : ''}`;
+      show(`${head('✅')}\nГотово за ${took}. ${counts}.`);
       return enqueue(async () => {
         try {
           const { size } = await stat(filePath);
           if (size > MAX_UPLOAD_BYTES) {
             const mb = (size / 1024 / 1024).toFixed(1);
-            await telegram.send(`${head('📦')}\nThe file is ${mb} MB, too big for Telegram. Download it from the run page (Artifacts).${runLink}`);
+            await telegram.send(`${head('📦')}\nФайл має ${mb} МБ – це забагато для Telegram. Завантажте його зі сторінки запуску (Artifacts).${runLink}`);
             return;
           }
           await telegram.sendDocument(filePath, `${head('📊')}\n${counts}`);
         } catch (err) {
           log(`Telegram: ${err.message}`);
-          await telegram.send(`${head('⚠️')}\nCould not send the file: ${escapeHtml(err.message)}\nDownload it from the run page (Artifacts).${runLink}`);
+          await telegram.send(`${head('⚠️')}\nНе вдалося надіслати файл: ${escapeHtml(err.message)}\nЗавантажте його зі сторінки запуску (Artifacts).${runLink}`);
         }
       });
     },
 
     fail(err) {
-      return show(`${head('❌')}\nFailed: ${escapeHtml(err.message)}${runLink}`);
+      return show(`${head('❌')}\nПомилка: ${escapeHtml(err.message)}${runLink}`);
     },
   };
 }
