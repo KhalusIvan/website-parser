@@ -10,6 +10,7 @@ Supported websites (all produce the same Excel columns):
 |---|---|---|---|
 | `vroda` | vroda-ua.com | ua, ru | JavaScript port of the old `vroda.jar` (same columns, order and values; old-price bug fixed) |
 | `jrl` | jrl.in.ua | ua | Official JRL store, about 420 products, takes 1-2 minutes |
+| `mrd` | mrd-pro.com.ua | ua, ru | Official MRD PRO store, about 90 products, takes about a minute |
 
 jrl.in.ua differences: category pages show only one colour of each comb; the other colours are
 linked from its product page ("Колір"), so they are followed and exported right after it. The file
@@ -18,6 +19,12 @@ specifications table, so they stay empty: `vendor` is always JRL, and real attri
 shop fills in become columns (placeholders like "атрибут 1" are skipped), `available` comes from the visible stock label because the hidden
 schema data says "InStock" even for sold-out products, and descriptions that are too long for an
 Excel cell (Word-pasted HTML) have their inline styles removed instead of being cut off.
+
+mrd-pro.com.ua: the shop's own specifications ("Характеристики") become columns, next to the
+vroda columns (Ukrainian file only; there is no list of vroda's Russian columns yet). `name` is the
+catalogue name of the product, not the longer heading on its page. `vendor` is always MRD PRO.
+"Передзамовлення" (pre-order) counts as not available. The Russian menu of the site links some
+categories to the Ukrainian pages, so the Russian category links are built as `/ru/` + the Ukrainian path.
 
 ## How it works
 
@@ -115,6 +122,7 @@ npm run scrape -- vroda --lang ua --mode all      # whole site -> output/vroda-U
 npm run scrape -- vroda --lang ru --mode category --url https://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki
 npm run scrape -- vroda --lang ua --mode all --limit 20   # quick test: only the first 20 products
 npm run scrape -- jrl --lang ua --mode all        # jrl.in.ua -> output/jrl-UA.xlsx
+npm run scrape -- mrd --lang ru --mode all        # mrd-pro.com.ua -> output/mrd-RU.xlsx
 ```
 
 Add `--telegram-chat <your id>` (with `TELEGRAM_BOT_TOKEN` set in the environment) to get the

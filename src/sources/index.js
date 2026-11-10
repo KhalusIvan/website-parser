@@ -2,8 +2,9 @@
 // To add a new source: create src/sources/<id>.js (see vroda.js for the shape) and add it here.
 import vroda from './vroda.js';
 import jrl from './jrl.js';
+import mrd from './mrd.js';
 
-export const sources = [vroda, jrl];
+export const sources = [vroda, jrl, mrd];
 
 export function getSource(id) {
   const source = sources.find((s) => s.id === id);

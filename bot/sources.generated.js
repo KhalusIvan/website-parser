@@ -38,5 +38,25 @@ export default [
         "needsUrl": true
       }
     }
+  },
+  {
+    "id": "mrd",
+    "name": "MRD PRO",
+    "website": "https://mrd-pro.com.ua",
+    "description": "Official MRD PRO store: clippers, trimmers, shavers, sets and spare parts.",
+    "languages": {
+      "ua": "Українська",
+      "ru": "Русский"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
   }
 ];

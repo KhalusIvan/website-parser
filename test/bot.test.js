@@ -70,7 +70,7 @@ test('whole site: /new -> site -> mode -> language -> starts the workflow', asyn
   const bot = createBot(ENV, { fetch: apis.fetch });
 
   await bot.handleUpdate(message('/new'));
-  assert.deepEqual(buttonData(apis.sent()[0]), ['src:vroda', 'src:jrl']);
+  assert.deepEqual(buttonData(apis.sent()[0]), ['src:vroda', 'src:jrl', 'src:mrd']);
 
   await bot.handleUpdate(press('src:vroda'));
   assert.deepEqual(buttonData(apis.sent()[1]), ['mode:vroda:all', 'mode:vroda:category']);
