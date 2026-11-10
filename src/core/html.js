@@ -90,3 +90,16 @@ export function tidyHtml(html) {
     .replace(BETWEEN_BLOCKS, '>\n<')
     .replace(ADJACENT_BLOCKS, '$1\n');
 }
+
+/** Excel's maximum text length per cell. */
+const EXCEL_CELL_LIMIT = 32767;
+
+/**
+ * Some descriptions were pasted from Word and are mostly inline styles (e.g. 35 000 characters,
+ * 2 700 of them text). Those would be cut off in Excel, losing text and breaking the HTML, so for
+ * them only, the style attributes and Word's <o:p> tags are removed. Shorter ones stay unchanged.
+ */
+export function fitDescription(html) {
+  if (html.length <= EXCEL_CELL_LIMIT) return html;
+  return html.replace(/\s+style="[^"]*"/gi, '').replace(/<\/?o:p[^>]*>/gi, '');
+}

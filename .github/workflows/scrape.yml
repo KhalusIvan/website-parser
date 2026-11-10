@@ -10,7 +10,7 @@ on:
       source:
         description: Website
         type: choice
-        options: [vroda, jrl, mrd] # add new source ids here
+        options: [vroda, jrl, mrd, babyliss, gama, immortal, jaguar, kucheryawiy, moser, spl, spl4barber] # add new source ids here
         default: vroda
       lang:
         description: Language

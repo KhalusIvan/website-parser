@@ -58,5 +58,161 @@ export default [
         "needsUrl": true
       }
     }
+  },
+  {
+    "id": "babyliss",
+    "name": "BaByliss PRO",
+    "website": "https://babyliss-pro.com.ua",
+    "description": "BaByliss PRO store: hair dryers, straighteners, curling irons, clippers, trimmers, shavers and accessories.",
+    "languages": {
+      "ua": "Українська"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "gama",
+    "name": "GA.MA",
+    "website": "https://gamaofficial.com.ua",
+    "description": "Official GA.MA store: hair straighteners, curling irons, hair dryers, brushes, clippers and accessories.",
+    "languages": {
+      "ua": "Українська",
+      "ru": "Русский"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "immortal",
+    "name": "Immortal",
+    "website": "https://immortal.com.ua",
+    "description": "Official Immortal store: beard, hair and face care, perfumes and barber accessories.",
+    "languages": {
+      "ua": "Українська"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "jaguar",
+    "name": "Jaguar Solingen",
+    "website": "https://jaguar-solingen.in.ua",
+    "description": "Official Jaguar Solingen store: hairdressing scissors, clippers, hair dryers, brushes and accessories.",
+    "languages": {
+      "ua": "Українська",
+      "ru": "Русский"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "kucheryawiy",
+    "name": "Kucheryawiy",
+    "website": "https://kucheryawiy.com.ua",
+    "description": "Shop for hairdressers and barbers: clippers, trimmers, dryers, scissors, tools, spare parts and salon equipment.",
+    "languages": {
+      "ua": "Українська",
+      "ru": "Русский"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "moser",
+    "name": "Moser Animal",
+    "website": "https://moser-animal.com",
+    "description": "Moser Animal store: grooming clippers and trimmers, blades, dryers, tools and cosmetics for pets.",
+    "languages": {
+      "ua": "Українська"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "spl",
+    "name": "SPL Group",
+    "website": "https://spl-group.com.ua",
+    "description": "SPL Group store: hairdressing scissors, brushes, combs, capes, manicure and make-up tools (SPL, Exalto, Stylance, Vatana).",
+    "languages": {
+      "ua": "Українська",
+      "ru": "Русский"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
+  },
+  {
+    "id": "spl4barber",
+    "name": "SPL4Barber",
+    "website": "https://spl4barber.com.ua",
+    "description": "Official Wahl distributor: clippers, trimmers, shavers, hair dryers, straighteners, spare parts and accessories.",
+    "languages": {
+      "ua": "Українська"
+    },
+    "modes": {
+      "all": {
+        "label": "Whole site",
+        "needsUrl": false
+      },
+      "category": {
+        "label": "One category (paste URL)",
+        "needsUrl": true
+      }
+    }
   }
 ];

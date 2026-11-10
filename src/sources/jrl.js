@@ -11,9 +11,11 @@
 //  - There is no specifications table; real attributes the shop fills in are exported as columns
 //    (placeholders like "атрибут 1" are skipped). vendor is always JRL (the official JRL store; only
 //    a couple of product pages link to the brand). All vroda spec columns are in the file, mostly empty.
-import { contentFirst, eachAttr, exists, htmlFirst, normText, textFirst, trimChars } from '../core/html.js';
+import { contentFirst, eachAttr, exists, fitDescription, htmlFirst, normText, textFirst, trimChars } from '../core/html.js';
 import { createProduct, movePrices } from '../core/product.js';
 import { VRODA_UA_COLUMNS } from './vroda-columns.js';
+
+export { fitDescription }; // shared, in core/html.js
 
 const HOME = 'https://jrl.in.ua/';
 const MAX_PAGES = 200;
@@ -39,18 +41,6 @@ export function money(text) {
   return match ? Number(match[0].replace(',', '.')).toFixed(2) : '';
 }
 
-/** Excel's maximum text length per cell. */
-const EXCEL_CELL_LIMIT = 32767;
-
-/**
- * Some descriptions were pasted from Word and are mostly inline styles (e.g. 35 000 characters,
- * 2 700 of them text). Those would be cut off in Excel, losing text and breaking the HTML, so for
- * them only, the style attributes and Word's <o:p> tags are removed. Shorter ones stay unchanged.
- */
-export function fitDescription(html) {
-  if (html.length <= EXCEL_CELL_LIMIT) return html;
-  return html.replace(/\s+style="[^"]*"/gi, '').replace(/<\/?o:p[^>]*>/gi, '');
-}
 
 /** Removes the category-dependent "path" parameter from index.php product links. */
 export function normalizeLink(link) {

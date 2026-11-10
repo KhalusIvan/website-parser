@@ -11,6 +11,28 @@ Supported websites (all produce the same Excel columns):
 | `vroda` | vroda-ua.com | ua, ru | JavaScript port of the old `vroda.jar` (same columns, order and values; old-price bug fixed) |
 | `jrl` | jrl.in.ua | ua | Official JRL store, about 420 products, takes 1-2 minutes |
 | `mrd` | mrd-pro.com.ua | ua, ru | Official MRD PRO store, about 90 products, takes about a minute |
+| `babyliss` | babyliss-pro.com.ua | ua | BaByliss PRO, about 315 products, about 2 minutes |
+| `gama` | gamaofficial.com.ua | ua, ru | GA.MA, about 275 products (slow site) |
+| `immortal` | immortal.com.ua | ua | Immortal cosmetics, about 260 products |
+| `jaguar` | jaguar-solingen.in.ua | ua, ru | Jaguar Solingen scissors, about 255 products, about 7 minutes |
+| `kucheryawiy` | kucheryawiy.com.ua | ua, ru | Multi-brand shop, about 2,750 products (the biggest) |
+| `moser` | moser-animal.com | ua | Moser / WAHL animal clippers, about 155 products, about 4 minutes |
+| `spl` | spl-group.com.ua | ua, ru | SPL Group, about 1,500 products, about 15 minutes |
+| `spl4barber` | spl4barber.com.ua | ua | Wahl barber shop, about 220 products (slow site) |
+
+All of them: `price` = regular price and `price special` = sale price; `available` comes from the
+visible stock label (pre-order and "expected" count as not available, because many sites' hidden
+schema data says "InStock" for everything); `name` is the catalogue name, not a longer SEO heading;
+`vendor` is the product's brand (the shop's own brand where the page shows none); the Ukrainian files
+have all vroda spec columns plus the shop's own specs. Where products link other products that no
+category lists (colour variants, sizes, scissor pairs), those are followed too. Gama, Moser and
+SPL4Barber share one server that blocks IPs which load it too fast: don't test them in parallel.
+Shared code per shop platform is in `src/sources/lib/` (OpenCart "upstore": mrd, immortal,
+kucheryawiy; OpenCart "luxshop": jaguar, moser; WooCommerce: babyliss, spl4barber).
+
+Known gaps, as of 2026-11-10: kucheryawiy has about 300 live products that are in no category (only
+in its sitemap) and these are not exported; SPL Group has 2 such products (mannequins). On gama, 2
+products have a "sale" price above the regular one on the site itself, so the two are swapped.
 
 jrl.in.ua differences: category pages show only one colour of each comb; the other colours are
 linked from its product page ("Колір"), so they are followed and exported right after it. The file
@@ -42,8 +64,8 @@ Telegram                 Cloudflare Worker (bot/)            GitHub Actions (.gi
 - The workflow can run for up to 6 hours. It scrapes, keeps one Telegram message updated with
   progress, and sends the Excel file to the chat. The file is also kept on the run page
   (*Artifacts*) for 30 days.
-- The repo stays private. Free accounts get 2,000 Actions minutes a month, which is about 30
-  whole-site scrapes.
+- The repo stays private. Free accounts get 2,000 Actions minutes a month. A whole site uses
+  1–30 of them (see the table above).
 
 ## Using the bot
 
@@ -54,7 +76,7 @@ Telegram                 Cloudflare Worker (bot/)            GitHub Actions (.gi
 | `/status` | Shows the last 5 runs, with a *Cancel* button for a running one. |
 | `/id` | Shows your Telegram ID. Works for everyone. |
 
-A whole site takes about 30–60 minutes. Only the Telegram users listed in `ALLOWED_USER_IDS` can use the bot.
+A whole site takes from about a minute to about 30 minutes (kucheryawiy), see the table above. Only the Telegram users listed in `ALLOWED_USER_IDS` can use the bot.
 
 You can also start a run without the bot: *Actions → Scrape → Run workflow*. Put your Telegram ID
 in *chat_id*, or set the repository variable `TELEGRAM_CHAT_ID` once.

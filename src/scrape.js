@@ -7,8 +7,13 @@ import { getSource } from './sources/index.js';
 
 function slugFromUrl(url) {
   try {
-    const last = new URL(url).pathname.split('/').filter(Boolean).pop() ?? 'category';
-    return last.replace(/[^a-z0-9-]+/gi, '-').slice(0, 60);
+    // Last path part, ignoring a page number ("/category/page-2") and the "index.php" of plain links;
+    // Cyrillic links are decoded, so the file name stays readable.
+    const parts = decodeURIComponent(new URL(url).pathname)
+      .split('/')
+      .filter((part) => part && !/^page-\d+$/i.test(part) && part !== 'index.php');
+    const last = parts.pop() ?? 'category';
+    return last.replace(/[^\p{L}\p{N}-]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'category';
   } catch {
     return 'category';
   }
@@ -47,7 +52,8 @@ export async function scrape({
   http = createHttp({ log }),
   onProgress,
 }) {
-  const source = getSource(sourceId);
+  // A source id, or a source object (lets a new source be tried before it is registered).
+  const source = typeof sourceId === 'object' ? sourceId : getSource(sourceId);
   if (!source.languages[lang]) {
     throw new Error(`Language "${lang}" is not available for ${source.id}: ${Object.keys(source.languages).join(', ')}`);
   }
