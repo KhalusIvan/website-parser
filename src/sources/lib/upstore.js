@@ -98,15 +98,19 @@ function attributes($) {
 function description($) {
   const $description = $(SEL.description).first();
   $description.children('h2.ch-h2').first().remove();
-  // A tag the shop left unclosed in a description (e.g. a <span> on a few immortal.com.ua and
-  // kucheryawiy.com.ua pages) makes the browser/parser put the next tabs (reviews with their form and
-  // script, questions) inside the description. Every tab starts with an h2.ch-h2 heading: cut from the
-  // first nested tab or heading to the end.
-  const cut = $description.find('[id^="tab-"], h2.ch-h2').first();
-  if (cut.length) {
-    cut.nextAll().remove();
-    let node = cut.parent();
-    cut.remove();
+  // A block the shop left unclosed in a description (a few immortal.com.ua and kucheryawiy.com.ua
+  // pages) makes the parser put the next tabs (specifications, reviews with their form and script)
+  // inside the description. Such a tab is then the only element with its id on the page. Shops also
+  // paste copies of the theme's markup into descriptions (headings, even a "tab-review" block); those
+  // copies have the same id as the real tab elsewhere on the page and are kept.
+  const leaked = $description
+    .find('[id^="tab-"]')
+    .filter((_, el) => el.attribs.id !== 'tab-description' && $(`[id="${el.attribs.id}"]`).length === 1)
+    .first();
+  if (leaked.length) {
+    leaked.nextAll().remove();
+    let node = leaked.parent();
+    leaked.remove();
     while (node.length && !node.is($description)) {
       node.nextAll().remove();
       node = node.parent();

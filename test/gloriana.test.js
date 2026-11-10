@@ -57,3 +57,9 @@ test('parseProduct: sold out, discount, specs, manufacturer, spaces in photo lin
   assert.equal(p.available, false);
   assert.deepEqual(p.specs, { 'Покриття пластин': 'Титан', 'Довжина шнура': '3 м', vendor: 'Gloriana' });
 });
+
+test('parseProduct: theme markup pasted into a description by the shop is kept (only real leaked tabs are cut)', async () => {
+  const http = fakeHttp({ 'https://glorianapro.com/p/': 'gloriana-product-pasted.html' });
+  const p = await gloriana.parseProduct('https://glorianapro.com/p/', { category: 'C' }, ctx(http));
+  assert.match(p.description, /^<p>Текст магазину.<\/p>\s*<h2 class="ch-h2">Остання строка оформлена як заголовок<\/h2>\s*<div id="tab-review"><p>Нет отзывов об этом товаре.<\/p><\/div>$/);
+});
