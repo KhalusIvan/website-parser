@@ -21,9 +21,8 @@
 //  - Stock: in stock if the label is .instock or says "В наявності" / "В наличии" (immortal.com.ua shows
 //    "В наявності" with the out-of-stock style on a few products - the visible label wins).
 //    "Передзамовлення" (pre-order), "Немає в наявності", "Очікується ..." etc. count as not available.
-import { htmlFirst, normText, textFirst, trimChars } from '../../core/html.js';
+import { fitDescription, normText, textFirst, tidyHtml, trimChars } from '../../core/html.js';
 import { createProduct, movePrices } from '../../core/product.js';
-import { fitDescription } from '../../core/html.js';
 
 const MAX_PAGES = 200;
 
@@ -97,8 +96,24 @@ function attributes($) {
 
 /** The description without the heading the theme adds ("Опис <product name>"). */
 function description($) {
-  $(`${SEL.description} > h2.ch-h2`).first().remove();
-  return fitDescription(htmlFirst($, SEL.description, '').trim());
+  const $description = $(SEL.description).first();
+  $description.children('h2.ch-h2').first().remove();
+  // A tag the shop left unclosed in a description (e.g. a <span> on a few immortal.com.ua and
+  // kucheryawiy.com.ua pages) makes the browser/parser put the next tabs (reviews with their form and
+  // script, questions) inside the description. Every tab starts with an h2.ch-h2 heading: cut from the
+  // first nested tab or heading to the end.
+  const cut = $description.find('[id^="tab-"], h2.ch-h2').first();
+  if (cut.length) {
+    cut.nextAll().remove();
+    let node = cut.parent();
+    cut.remove();
+    while (node.length && !node.is($description)) {
+      node.nextAll().remove();
+      node = node.parent();
+    }
+  }
+  $description.find('script, form').remove();
+  return fitDescription($description.length ? tidyHtml($description.html() ?? '').trim() : '');
 }
 
 /**
@@ -107,10 +122,12 @@ function description($) {
  * that is turned into the image's web address (origin + "/image/catalog/x.jpg").
  */
 function images($, origin) {
+  // glorianapro.com links file names with spaces ("401-050 (1).webp"): encode them so links stay valid.
+  const encodeSpaces = (url) => url.replace(/ /g, '%20');
   const imageUrl = (url) => {
-    if (/^https?:/.test(url)) return url;
+    if (/^https?:/.test(url)) return encodeSpaces(url);
     const path = url.match(/^\/\S*?\/(image\/(?:catalog|cache)\/\S+)$/)?.[1];
-    return path ? `${origin}/${path}` : ''; // "javascript:;" and the like are dropped
+    return path ? `${origin}/${encodeSpaces(path)}` : ''; // "javascript:;" and the like are dropped
   };
   const urls = $(SEL.images)
     .map((_, el) => imageUrl($(el).attr('href') ?? $(el).attr('data-src') ?? ''))

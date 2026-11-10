@@ -39,7 +39,7 @@ test('collectLinks (whole site, Russian): menu from the Ukrainian home page, /ru
   ]);
 });
 
-test('parseProduct: sold out, discount, specs, manufacturer; related products ignored', async () => {
+test('parseProduct: sold out, discount, specs, manufacturer, spaces in photo links, broken description HTML', async () => {
   const http = fakeHttp({ 'https://glorianapro.com/vypriamliach-g7/': 'gloriana-product.html' });
   const p = await gloriana.parseProduct('https://glorianapro.com/vypriamliach-g7/', { category: 'Випрямляч' }, ctx(http));
 
@@ -48,7 +48,9 @@ test('parseProduct: sold out, discount, specs, manufacturer; related products ig
     p.images,
     'https://glorianapro.com/image/cache/catalog/402-070-1300x1300.webp;https://glorianapro.com/image/cache/catalog/402-070%20(1)-1300x1300.webp',
   );
-  assert.equal(p.description, '<p>Випрямляч з <b>титановими</b> пластинами.</p>');
+  // The shop's description leaves a <div> open, so the template's </div> closes it and the reviews tab
+  // (heading, form, script) ends up inside the description: it is cut off.
+  assert.match(p.description, /^<p>Випрямляч з <b>титановими<\/b> пластинами.<\/p>\s*<div class="MsoNormal"><span>Блок без закриття<\/span><\/div>$/);
   assert.equal(p.price, '2999.00');
   assert.equal(p.priceSpecial, '2499.00');
   assert.equal(p.sku, '402-070');
