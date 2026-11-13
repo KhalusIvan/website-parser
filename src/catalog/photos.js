@@ -1,7 +1,7 @@
 // Downloads the catalog's photos into <dir>/catalog/products/<brand>/<product-seo-name>-<n>.<ext>
 // (ready to copy into OpenCart's image/ folder). Already downloaded files are skipped, so an
 // interrupted run can simply be started again.
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { photoCandidates } from './build.js';
 import { slugify } from './slug.js';
@@ -130,4 +130,25 @@ export async function downloadPhotos(products, outDir, { log = console.log } = {
   }
   log(`photos: ${downloaded} downloaded, ${skipped} already there, ${failed.length} failed`);
   return { downloaded, skipped, failed };
+}
+
+/** Deletes photos in <outDir>/catalog/products that no product uses any more (e.g. products dropped). */
+export function removeUnusedPhotos(products, outDir, { log = console.log } = {}) {
+  const root = path.join(outDir, 'catalog', 'products');
+  if (!existsSync(root)) return 0;
+  const keep = new Set(products.flatMap((p) => (p.photos ?? []).map((ph) => path.join(outDir, ph.file))));
+  let removed = 0;
+  for (const dir of readdirSync(root)) {
+    const full = path.join(root, dir);
+    if (!statSync(full).isDirectory()) continue;
+    for (const f of readdirSync(full)) {
+      if (!keep.has(path.join(full, f))) {
+        rmSync(path.join(full, f));
+        removed++;
+      }
+    }
+    if (!readdirSync(full).length) rmSync(full, { recursive: true });
+  }
+  if (removed) log(`photos: removed ${removed} files no product uses any more`);
+  return removed;
 }

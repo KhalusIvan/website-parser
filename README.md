@@ -153,6 +153,16 @@ catalog in `output/mainmarket/`:
   Already downloaded photos are skipped, so the command can be run again after an interruption.
   `--no-photos` builds only the files (photo links stay as supplier URLs).
 
+**Partner list** (`src/catalog/partner.js`): the partner's product list (code, name, price) is the
+source of truth for codes. With it, the catalog has only products the partner sells, and their SKU is
+the partner's code (`partner_name` shows the partner's name of the product). The newest `.xlsx`/`.csv`
+in `output/database/` is used (`--partner <file>` to pick one, `--partner none` to switch it off); an
+`.xls` has to be saved as `.xlsx` in Excel first. Matching: the same article within the brand family,
+or exactly the same article under another brand; when a shop has two pages with one code, the one whose
+name is closest to the partner's name gets it. `mainmarket-review.xlsx` lists what didn't make it:
+site products the partner doesn't sell, second pages of a code, matches whose names differ a lot (worth
+a look) and partner products no site has.
+
 How the products are put together (`src/catalog/`):
 
 - **Same product, several shops** (`offers.js`): matched by article within a brand family (Moser = Wahl,

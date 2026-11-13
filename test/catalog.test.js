@@ -103,3 +103,62 @@ test('SEO keywords and OpenCart original photos', () => {
   ]);
   assert.deepEqual(photoCandidates('https://shop.ua/wp-content/uploads/x.jpg'), ['https://shop.ua/wp-content/uploads/x.jpg']);
 });
+
+test('partner list: brand headers, codes; matching by code within the brand family, exact code across brands, name settles shared codes', async () => {
+  const { partnerItems, matchPartner } = await import('../src/catalog/partner.js');
+  const items = partnerItems([
+    ['', 'SPL', ''],
+    ['', 'Ножницы для маникюра (Manicure scissors)', ''],
+    ['9021', 'Ножиці для нігтів SPL 9021 блістер', '1.52'],
+    ['705', 'УФ-лампа 36 Вт-РОЗПРОДАЖ !!!!', '5'],
+    ['', 'JAGUAR TCC', ''],
+    ['J-82655', 'Ножн. д/стриж. прямі PRESTYLE ERGO POLISH (шт.)', '27.97'],
+    ['', 'JRL', ''],
+    ['JRL-2020C-W', 'Професійна машинка для стрижки JRL Onyx White', '90'],
+  ]);
+  assert.deepEqual(items.map((i) => [i.code, i.brand]), [['9021', 'SPL'], ['705', 'SPL'], ['J-82655', 'Jaguar'], ['JRL-2020C-W', 'JRL']]);
+
+  const product = (key, sku, brand, name) => ({ key, offers: [{ sku, brand, official: false, ua: { name } }] });
+  const { matched, conflicts, unusedItems } = matchPartner([
+    product('a', '9021', 'SPL', 'Ножиці для нігтів SPL 9021'),
+    product('b', '82655', 'Jaguar', 'Ножиці Jaguar Pre Style Ergo'), // reseller without the J- prefix
+    product('c', '705', 'Simei', 'УФ-лампа 36 Вт'), // another brand on the site, exactly the same code
+    product('d', 'JRL-2020C-W', 'JRL', 'Професійна машинка для стрижки JRL Onyx White Santa Clause Limited'),
+    product('e', 'JRL-2020C-W', 'JRL', 'Професійна машинка для стрижки JRL Onyx White'), // closer to the partner name
+    product('f', '1040', 'GA.MA', 'Випрямляч Ga.Ma 1040'), // not in the list (and no JRL-1040 confusion)
+  ], items);
+  assert.deepEqual([...matched].map(([k, it]) => [k, it.code]).sort(), [['a', '9021'], ['b', 'J-82655'], ['c', '705'], ['e', 'JRL-2020C-W']]);
+  assert.deepEqual(conflicts.map((c) => c.product.key), ['d']);
+  assert.equal(unusedItems.length, 0);
+});
+
+test('partner matching: main page beats its duplicate; a code in the name fixes a wrong article but never takes a code another product owns', async () => {
+  const { partnerItems, matchPartner } = await import('../src/catalog/partner.js');
+  const items = partnerItems([
+    ['', 'GA.MA', ''],
+    ['GH3318', 'Фен для волосся GA.MA TEMPO 5D SENSI NIGHT/ GH3318', '1'],
+    ['GH3319', 'Фен для волосся GA.MA TEMPO 5D SENSI ROSE/ GH3319', '1'],
+    ['', 'Babyliss', ''],
+    ['FX797E', 'Тример BaByliss PRO SNAPFX FX797E', '1'],
+    ['', 'JAGUAR', ''],
+    ['85605', 'Машинка для стрижки JAGUAR CM 2000 FUSION (шт.)', '1'],
+  ]);
+  const offer = (sku, brand, name, source, official = false) => ({ sku, brand, official, source, ua: { name } });
+  const { matched } = matchPartner([
+    // the shop gave the ROSE dryer the NIGHT dryer's article
+    { key: 'gama:GH3318', offers: [offer('GH3318', 'GA.MA', 'Фен GAMA TEMPO 5D SENSI ROSE GH3319', 'gama', true)] },
+    { key: 'gama:GH3318~gama1', offers: [offer('GH3318', 'GA.MA', 'Фен GAMA TEMPO 5D SENSI NIGHT GH3318', 'gama', true)] },
+    // a set mentions the trimmer's code
+    { key: 'babylisspro:FX797E', offers: [offer('FX797E', 'BaByliss PRO', 'Тример BaByliss PRO SNAPFX FX797E', 'babyliss', true), offer('FX797E', 'BaByliss PRO', 'Тример FX797E', 'vroda')] },
+    { key: 'babylisspro:FXSET', offers: [offer('FXSET', 'BaByliss PRO', 'Набір BaByliss PRO SNAP FX машинка та тример FX797E', 'babyliss', true)] },
+    // the official store's product and a reseller's duplicate page worded like the partner
+    { key: 'jaguar:85605', offers: [offer('85605', 'Jaguar', 'Машинка для стрижки Jaguar CM2000 Fusion (85605)', 'jaguar', true), offer('85605', 'Jaguar', 'x', 'vroda')] },
+    { key: 'jaguar:85605~kucheryawiy1', offers: [offer('85605', 'Jaguar', 'Машинка для стрижки JAGUAR CM 2000 FUSION', 'kucheryawiy')] },
+  ], items);
+  assert.deepEqual(Object.fromEntries([...matched].map(([k, it]) => [k, it.code])), {
+    'gama:GH3318~gama1': 'GH3318',
+    'gama:GH3318': 'GH3319',
+    'babylisspro:FX797E': 'FX797E',
+    'jaguar:85605': '85605',
+  });
+});

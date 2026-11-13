@@ -4,6 +4,7 @@ import { alignAttributes, valueTranslator } from '../core/align.js';
 import { RUSSIAN_NAMES, canonicalAttribute, cleanValue } from './attributes.js';
 import { cleanDescription, plainText, textLength } from './html.js';
 import { groupOffers, loadOffers } from './offers.js';
+import { matchPartner, nameSimilarity, readPartnerFile } from './partner.js';
 import { CATEGORIES, categoryPath, classify } from './taxonomy.js';
 import { slugify } from './slug.js';
 
@@ -130,13 +131,33 @@ export function photoCandidates(url) {
   return [...exts.map((e) => `${base}.${e}`), url];
 }
 
-export async function buildCatalog({ dir = 'output', log = console.log } = {}) {
+/**
+ * partnerFile: the partner's product list (.xlsx/.csv). When given, the catalog only has products the
+ * partner sells, with the partner's code as SKU; the rest is listed in `review`.
+ */
+export async function buildCatalog({ dir = 'output', partnerFile = null, log = console.log } = {}) {
   const offers = await loadOffers(dir, { log });
   const aligned = alignAttributes(offers);
   const ruNames = russianAttributeNames(offers, aligned);
   const translate = valueTranslator(offers, aligned);
-  const groups = groupOffers(offers);
+  let groups = groupOffers(offers);
   log(`${offers.length} offers from ${new Set(offers.map((o) => o.source)).size} shops -> ${groups.length} products`);
+
+  let partner = null;
+  let review = null;
+  if (partnerFile) {
+    const items = await readPartnerFile(partnerFile);
+    const { matched, conflicts, unusedItems } = matchPartner(groups, items);
+    const notInPartner = groups.filter((g) => !matched.has(g.key) && !conflicts.some((c) => c.product === g));
+    review = {
+      notInPartner,
+      conflicts: conflicts.map((c) => ({ ...c, winner: groups.find((g) => matched.get(g.key) === c.item) })),
+      partnerOnly: unusedItems,
+    };
+    partner = matched;
+    groups = groups.filter((g) => matched.has(g.key));
+    log(`Partner list: ${items.length} items; ${groups.length} products found in it, ${notInPartner.length} not in it, ${conflicts.length} share a code with a better match, ${unusedItems.length} partner items have no product on the sites`);
+  }
 
   const products = [];
   const unclassified = [];
@@ -158,7 +179,9 @@ export async function buildCatalog({ dir = 'output', log = console.log } = {}) {
 
     products.push({
       key: group.key,
-      sku: main.sku || list.find((o) => o.sku)?.sku || '',
+      // the partner's code when there is a partner list, else the article of the best shop
+      sku: partner?.get(group.key)?.code ?? (main.sku || list.find((o) => o.sku)?.sku || ''),
+      partnerName: partner?.get(group.key)?.name ?? '',
       brand,
       categoryId: categoryId ?? 'tools-other',
       nameUa: main.ua.name.replace(/\s+/g, ' ').trim(),
@@ -206,5 +229,13 @@ export async function buildCatalog({ dir = 'output', log = console.log } = {}) {
     p.seoUa = unique('ua', slugify(p.nameUa, 'uk'));
     p.seoRu = unique('ru', slugify(p.nameRu || p.nameUa, 'ru'));
   });
-  return { products, categories: CATEGORIES.map((c) => ({ ...c, pathUa: categoryPath(c.id, 'ua'), pathRu: categoryPath(c.id, 'ru') })) };
+  // matches by code whose names have little in common (the partner often writes in Russian or
+  // differently; these are worth a look)
+  if (review) {
+    review.checkNames = products
+      .map((p) => ({ product: p, similarity: nameSimilarity(p.nameUa, p.partnerName) }))
+      .filter((x) => x.similarity < 0.25)
+      .sort((a, b) => a.similarity - b.similarity);
+  }
+  return { products, review, categories: CATEGORIES.map((c) => ({ ...c, pathUa: categoryPath(c.id, 'ua'), pathRu: categoryPath(c.id, 'ru') })) };
 }

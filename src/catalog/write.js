@@ -60,6 +60,7 @@ export function tables({ products, categories }) {
       id: p.id,
       key: p.key,
       sku: p.sku,
+      partner_name: p.partnerName,
       brand_id: brandId.get(p.brand) ?? '',
       brand: p.brand,
       category_id: categoryId.get(p.categoryId),
@@ -150,7 +151,8 @@ const README = [
   ['', ''],
   ['Column (Products)', ''],
   ['key', 'Stable product key: brand family + normalised article. Same product = same key in every rebuild.'],
-  ['sku', 'Article as the official brand store (or the first shop) writes it.'],
+  ['sku', "The partner's product code (partner list). Without a partner list: the article as the official brand store (or the first shop) writes it."],
+  ['partner_name', "The product's name in the partner list (to check the match)."],
   ['price / special_price', 'From the cheapest shop that has the product in stock (else the cheapest one). special_price = sale price, empty if none.'],
   ['available', '1 = in stock at least at one shop with a price.'],
   ['price_note', 'Filled when the cheapest price was skipped because it is less than half of what the other shops ask (a likely error or another pack size). Worth a look.'],
@@ -170,7 +172,7 @@ export async function writeCatalog(catalog, outDir, { log = console.log } = {}) 
   wb.creator = 'website-parser';
 
   addSheet(wb, 'Products', [
-    ['id', 'id', 7], ['key', 'key', 22], ['sku', 'sku', 16], ['brand_id', 'brand_id', 9], ['brand', 'brand', 14],
+    ['id', 'id', 7], ['key', 'key', 22], ['sku', 'sku', 16], ['partner_name', 'partner_name', 50], ['brand_id', 'brand_id', 9], ['brand', 'brand', 14],
     ['category_id', 'category_id', 11], ['category_key', 'category_key', 18], ['category_ua', 'category_ua', 40], ['category_ru', 'category_ru', 40],
     ['name_ua', 'name_ua', 60], ['name_ru', 'name_ru', 60], ['description_ua', 'description_ua', 50], ['description_ru', 'description_ru', 50],
     ['meta_title_ua', 'meta_title_ua', 30], ['meta_title_ru', 'meta_title_ru', 30], ['meta_description_ua', 'meta_description_ua', 30], ['meta_description_ru', 'meta_description_ru', 30],
@@ -212,4 +214,52 @@ export async function writeCatalog(catalog, outDir, { log = console.log } = {}) 
   await writeFile(json, JSON.stringify({ built: README[1][1], categories: t.categoryRows, brands: t.brandRows, products: catalog.products.map((p) => ({ ...t.productRows[p.id - 1], attributes: p.specs.map(({ ua, ru, valueUa, valueRu }) => ({ ua, ru, valueUa, valueRu })), photos: p.photos ?? [], offers: p.offers })) }, null, 1));
   log(`Written: ${xlsx}, ${json}`);
   return { xlsx, json, counts: { products: t.productRows.length, attributes: t.attributeRows.length, categories: t.categoryRows.length, brands: t.brandRows.length, images: t.imageRows.length, offers: t.offerRows.length } };
+}
+
+/** What the partner list left out: for checking (mainmarket-review.xlsx). */
+export async function writeReview(review, outDir, { log = console.log } = {}) {
+  if (!review) return null;
+  const wb = new ExcelJS.Workbook();
+  const cheapest = (g) => Math.min(...g.offers.map((o) => o.effectivePrice || Infinity));
+  addSheet(wb, 'Not in partner list', [
+    ['brand', 'brand', 14], ['articles', 'articles on the sites', 24], ['name', 'name', 70], ['shops', 'shops', 24],
+    ['price', 'cheapest price', 12], ['available', 'available', 9], ['link', 'link', 70],
+  ], review.notInPartner.map((g) => ({
+    brand: g.offers[0].brand,
+    articles: [...new Set(g.offers.map((o) => o.sku).filter(Boolean))].join(' / '),
+    name: g.offers[0].ua.name,
+    shops: g.offers.map((o) => o.source).join(', '),
+    price: Number.isFinite(cheapest(g)) ? cheapest(g) : '',
+    available: g.offers.some((o) => o.available) ? 1 : 0,
+    link: g.offers[0].ua.link,
+  })));
+  addSheet(wb, 'Same code, other page', [
+    ['code', 'partner code', 16], ['partner_name', 'partner name', 60], ['used', 'used for the catalog', 60], ['used_link', 'link', 50],
+    ['left', 'left out (same code)', 60], ['left_link', 'link', 50],
+  ], review.conflicts.map((c) => ({
+    code: c.item.code,
+    partner_name: c.item.name,
+    used: c.winner?.offers[0].ua.name ?? '',
+    used_link: c.winner?.offers[0].ua.link ?? '',
+    left: c.product.offers[0].ua.name,
+    left_link: c.product.offers[0].ua.link,
+  })));
+  addSheet(wb, 'Check - name differs', [
+    ['id', 'catalog id', 10], ['code', 'partner code', 16], ['name', 'name on the sites', 60], ['partner_name', 'partner name', 60],
+    ['similarity', 'words in common', 14], ['link', 'link', 60],
+  ], (review.checkNames ?? []).map(({ product, similarity }) => ({
+    id: product.id,
+    code: product.sku,
+    name: product.nameUa,
+    partner_name: product.partnerName,
+    similarity: Math.round(similarity * 100) / 100,
+    link: product.offers[0]?.link ?? '',
+  })));
+  addSheet(wb, 'Partner only', [
+    ['code', 'code', 16], ['name', 'name', 80], ['brand', 'brand', 14], ['group', 'group in the partner list', 40], ['row', 'row', 8],
+  ], review.partnerOnly);
+  const file = path.join(outDir, 'mainmarket-review.xlsx');
+  await wb.xlsx.writeFile(file);
+  log(`Written: ${file} (${review.notInPartner.length} not in the partner list, ${review.conflicts.length} same code, ${(review.checkNames ?? []).length} to check, ${review.partnerOnly.length} partner-only)`);
+  return file;
 }
