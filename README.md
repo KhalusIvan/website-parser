@@ -136,6 +136,35 @@ To see the bot's errors live, run `npm run bot:logs`.
   *Settings → Developer settings*. Then set the new one again (setup steps 2 and 4).
 - Turn on two-factor login for GitHub, Cloudflare and Telegram. Those accounts give access to everything above.
 
+## One catalog for Mainmarket
+
+`npm run catalog` combines all scraped files in `output/` (`<shop>-UA.xlsx`, `<shop>-RU.xlsx`) into one
+catalog in `output/mainmarket/`:
+
+- `mainmarket-catalog.xlsx`: sheets Products, Attributes, Categories, Brands, Images, Supplier offers,
+  Attribute list and README (explains every column). The same data is in `mainmarket-catalog.json`.
+- `catalog/products/<brand>/<product>-<n>.jpg`: the photos (copy `catalog/` into OpenCart's `image/`).
+  Already downloaded photos are skipped, so the command can be run again after an interruption.
+  `--no-photos` builds only the files (photo links stay as supplier URLs).
+
+How the products are put together (`src/catalog/`):
+
+- **Same product, several shops** (`offers.js`): matched by article within a brand family (Moser = Wahl,
+  SPL with its sister brands). Articles are compared without case, punctuation, Cyrillic look-alike
+  letters and brand prefixes (`J-`, `JRL-`, `SPL-`, `HC-`).
+- **Price** (`build.js`): from the cheapest shop that has the product in stock. A price under half of
+  every other shop's price is skipped as a likely error and noted in `price_note`.
+- **Name, description, category**: from the official brand store if it sells the product, else vroda,
+  else kucheryawiy. Descriptions are cleaned (`html.js`): no styles, links, images or "buy on our site"
+  sentences; YouTube videos are kept.
+- **Photos**: the most complete set (weighted by the shop's photo quality); OpenCart originals instead of
+  resized copies where available. The moser/gama/spl4barber server is loaded one request at a time.
+- **Characteristics** (`attributes.js`, `align.js`): the shops' 343 attribute names merged into one set;
+  Russian names and values come from the shops' Russian pages, or are translated with what the shops'
+  Ukrainian/Russian pages say ("Так" -> "Да").
+- **Categories** (`taxonomy.js`): one tree by product type (brand is a separate field); rules map the
+  shops' categories and product names into it.
+
 ## Running locally
 
 ```bash

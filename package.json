@@ -14,7 +14,8 @@
     "bot:sources": "node scripts/bot-sources.js",
     "bot:deploy": "node scripts/bot-sources.js && npx --yes wrangler@4 deploy --config bot/wrangler.toml",
     "bot:secret": "npx --yes wrangler@4 secret put --config bot/wrangler.toml",
-    "bot:logs": "npx --yes wrangler@4 tail --config bot/wrangler.toml"
+    "bot:logs": "npx --yes wrangler@4 tail --config bot/wrangler.toml",
+    "catalog": "node src/catalog/cli.js"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
