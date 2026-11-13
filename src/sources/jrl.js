@@ -1,5 +1,5 @@
 // jrl.in.ua - official JRL store (OpenCart, "cyberstore" theme). Ukrainian only.
-// Same Excel columns as vroda. Notes about this site:
+// Same base columns as vroda; the shop's own characteristics as columns. Notes about this site:
 //  - Categories come from the catalogue menu (#menu-list), so new categories are picked up automatically.
 //  - A product can be listed in several categories; it is exported once, with the first category found.
 //  - Products without a friendly URL link to index.php?route=product/product&path=..&product_id=..
@@ -10,10 +10,9 @@
 //    label is used instead ("В наявності" = in stock, "Немає в наявності" = sold out).
 //  - There is no specifications table; real attributes the shop fills in are exported as columns
 //    (placeholders like "атрибут 1" are skipped). vendor is always JRL (the official JRL store; only
-//    a couple of product pages link to the brand). All vroda spec columns are in the file, mostly empty.
+//    a couple of product pages link to the brand).
 import { contentFirst, eachAttr, exists, fitDescription, htmlFirst, normText, textFirst, trimChars } from '../core/html.js';
 import { createProduct, movePrices } from '../core/product.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export { fitDescription }; // shared, in core/html.js
 
@@ -179,8 +178,6 @@ export default {
     category: { label: 'One category (paste URL)', needsUrl: true },
   },
   concurrency: 2,
-  // Same spec columns as the vroda file, even if empty here, so both files have the same layout.
-  columns: { ua: VRODA_UA_COLUMNS },
 
   /** Returns Map(productLink -> { category, listPrice, listSpecial }). */
   async collectLinks({ mode, url }, ctx) {

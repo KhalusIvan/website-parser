@@ -1,7 +1,7 @@
 // Offline tests for the Mainmarket catalog builder (src/catalog/).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alignAttributes, valueTranslator } from '../src/catalog/align.js';
+import { alignAttributes, valueTranslator } from '../src/core/align.js';
 import { canonicalAttribute } from '../src/catalog/attributes.js';
 import { brandFamily, brandFromName, canonicalBrand } from '../src/catalog/brands.js';
 import { photoCandidates, priceOffer } from '../src/catalog/build.js';

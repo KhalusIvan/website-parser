@@ -1,5 +1,5 @@
 // gamaofficial.com.ua - official GA.MA store (OpenCart, "storeset" theme). Ukrainian and Russian.
-// Same Excel columns as vroda. Notes about this site:
+// Same base columns as vroda; the shop's own characteristics as columns. Notes about this site:
 //  - The top menu misses a category ("Догляд за тілом" is only in the sidebar, and the menu's
 //    "Інше" link is dead), so categories come from the top menu AND the sidebar category list of
 //    the category pages (#sstore-3-level). "Акції" / "Гофре" are listed last; their products are
@@ -17,7 +17,6 @@
 //  - sku = "Модель"; vendor = "Виробник" (always Gama).
 import { fitDescription, htmlFirst, normText, specsFromRows, textFirst, trimChars } from '../core/html.js';
 import { createProduct, movePrices } from '../core/product.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export { fitDescription }; // shared, in core/html.js
 
@@ -217,8 +216,6 @@ export default {
     category: { label: 'One category (paste URL)', needsUrl: true },
   },
   concurrency: 2,
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
 
   /** Returns Map(productLink -> { category }). */
   async collectLinks({ lang, mode, url }, ctx) {

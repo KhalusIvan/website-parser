@@ -60,7 +60,6 @@ const NOT_A_PHOTO = /^(?!https?:)|\/(no_image|placeholder)[^/]*$/i;
  * @param {string} site.description
  * @param {object} site.languages      e.g. { ua: 'Українська', ru: 'Русский' }; ru pages are /ru/...
  * @param {string} site.vendor         brand used when the page shows no manufacturer
- * @param {object} [site.columns]      spec columns exported even when empty, per language
  * @param {string[]} [site.skipCrumbPaths]  breadcrumb links left out of `category` (e.g. a root "All products")
  * @param {RegExp} [site.lateCategory] menu categories (UA name) visited after their sibling categories
  */
@@ -235,7 +234,6 @@ export function createLuxshopSource(site) {
       category: { label: 'One category (paste URL)', needsUrl: true },
     },
     concurrency: 2,
-    columns: site.columns,
 
     /** Returns Map(productLink -> { category }). */
     async collectLinks({ lang, mode, url }, ctx) {

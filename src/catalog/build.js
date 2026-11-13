@@ -1,6 +1,6 @@
 // Builds one catalog from all scraped shops: every product once, with the cheapest supplier's price,
 // the best texts, photos and characteristics, in one category tree.
-import { alignAttributes, valueTranslator } from './align.js';
+import { alignAttributes, valueTranslator } from '../core/align.js';
 import { RUSSIAN_NAMES, canonicalAttribute, cleanValue } from './attributes.js';
 import { cleanDescription, plainText, textLength } from './html.js';
 import { groupOffers, loadOffers } from './offers.js';

@@ -91,12 +91,18 @@ export function createReporter({ telegram, title, runUrl = '', log = console.log
 
     /** Pass as `onProgress` to scrape(). Updates the message at most every `intervalMs`. */
     progress: (info) => {
+      // which language of how many, when the site has several: " (RU, 2/2)"
+      const step = info.langs?.length > 1 ? ` (${info.lang.toUpperCase()}, ${info.langs.indexOf(info.lang) + 1}/${info.langs.length})` : '';
+      if (info.phase === 'collect') {
+        if (info.langs?.indexOf(info.lang) > 0) show(`${head('🔄')}\nЗбираю посилання на товари${step}…${runLink}`);
+        return;
+      }
       if (info.phase !== 'products') return;
       const { done, total, failed } = info;
       if (done > 0 && done < total && now() - lastShownAt < intervalMs) return;
       const percent = total ? Math.floor((done / total) * 100) : 100;
       const failedText = failed ? ` · помилок: ${failed}` : '';
-      show(`${head('🔄')}\nЗбираю товари: ${done} / ${total} (${percent}%)${failedText}${runLink}`);
+      show(`${head('🔄')}\nЗбираю товари${step}: ${done} / ${total} (${percent}%)${failedText}${runLink}`);
     },
 
     done(summary, filePath) {

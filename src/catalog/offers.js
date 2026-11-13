@@ -60,6 +60,48 @@ async function readFile(file) {
   return rows;
 }
 
+const RU = ' (ru)';
+
+/**
+ * Reads a file with both languages (<shop>.xlsx: "name", "name (ru)", ..., "Колір", "Колір (ru)").
+ * Returns [{ ua, ru }] where ru uses the shop's Russian attribute names (sheet "Attributes"), like a
+ * Russian-only file would.
+ */
+async function readCombinedFile(file) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(file);
+  const sheet = wb.getWorksheet('Sheet0');
+  const header = sheet.getRow(1).values.slice(1);
+  const ruName = new Map();
+  wb.getWorksheet('Attributes')?.eachRow((row, i) => {
+    if (i > 1 && row.getCell(1).text) ruName.set(row.getCell(1).text, row.getCell(2).text);
+  });
+  const rows = [];
+  sheet.eachRow((row, i) => {
+    if (i === 1) return;
+    const ua = { specs: {} };
+    const ru = { specs: {} };
+    header.forEach((col, j) => {
+      const v = row.getCell(j + 1).text;
+      if (!v) return;
+      const isRu = col.endsWith(RU);
+      const name = isRu ? col.slice(0, -RU.length) : col;
+      const target = isRu ? ru : ua;
+      if (BASE_COLUMNS.includes(name)) target[name] = v;
+      else if (name === 'vendor') ua.vendor = v;
+      else if (isRu) ru.specs[ruName.get(name) || name] = v;
+      else ua.specs[name] = v;
+    });
+    if (!ua.link) return; // Russian-only rows: no Ukrainian product to attach them to
+    // shared fields (price, article, photos, stock) are the same on the Russian page
+    const hasRu = Boolean(ru.link);
+    for (const k of ['images', 'price', 'price special', 'sku', 'parent', 'available']) if (ua[k]) ru[k] = ua[k];
+    if (ua.vendor) ru.vendor = ua.vendor;
+    rows.push({ ua, ru: hasRu ? ru : null });
+  });
+  return rows;
+}
+
 const firstImage = (row) => (row.images ?? '').split(';')[0];
 const slugOf = (link) => decodeURIComponent(new URL(link).pathname).split('/').filter(Boolean).pop() ?? '';
 
@@ -92,17 +134,30 @@ function sameProduct(a, b) {
 
 /** Loads every <source>-UA.xlsx (+ <source>-RU.xlsx) in `dir` into offers. */
 export async function loadOffers(dir, { log = console.log } = {}) {
-  const files = readdirSync(dir).filter((f) => /^[a-z0-9]+-(UA|RU)\.xlsx$/.test(f));
+  const all = readdirSync(dir);
+  // <shop>.xlsx has both languages (current scrapers); older runs wrote <shop>-UA.xlsx + <shop>-RU.xlsx
+  const combined = all.filter((f) => /^[a-z0-9]+\.xlsx$/.test(f)).map((f) => f.slice(0, -5));
+  const legacy = all.filter((f) => /^[a-z0-9]+-UA\.xlsx$/.test(f)).map((f) => f.split('-')[0]);
   const offers = [];
-  for (const file of files.filter((f) => f.endsWith('-UA.xlsx')).sort()) {
-    const source = file.split('-')[0];
+  for (const source of [...new Set([...combined, ...legacy])].sort()) {
     if (!SHOPS[source]) {
-      log(`Skipping ${file}: unknown shop "${source}" (add it to SHOPS in src/catalog/offers.js)`);
+      log(`Skipping ${source}: unknown shop (add it to SHOPS in src/catalog/offers.js)`);
       continue;
     }
-    const uaRows = await readFile(path.join(dir, file));
-    const ruFile = `${source}-RU.xlsx`;
-    const findRu = files.includes(ruFile) ? pairRu(uaRows, await readFile(path.join(dir, ruFile))) : () => null;
+    let entries;
+    if (combined.includes(source)) {
+      entries = await readCombinedFile(path.join(dir, `${source}.xlsx`));
+    } else {
+      const uaRows = await readFile(path.join(dir, `${source}-UA.xlsx`));
+      const ruFile = `${source}-RU.xlsx`;
+      const findRu = all.includes(ruFile) ? pairRu(uaRows, await readFile(path.join(dir, ruFile))) : () => null;
+      entries = uaRows.map((ua) => ({ ua, ru: findRu(ua) }));
+    }
+    const file = combined.includes(source) ? `${source}.xlsx` : `${source}-UA.xlsx`;
+    const uaRows = entries.map((e) => e.ua);
+    const ruOf = new Map(entries.map((e) => [e.ua, e.ru]));
+    const findRu = (ua) => ruOf.get(ua) ?? null;
+    const hasRussian = entries.some((e) => e.ru);
 
     const seen = [];
     let paired = 0;
@@ -143,7 +198,7 @@ export async function loadOffers(dir, { log = console.log } = {}) {
       seen.push(offer);
       offers.push(offer);
     }
-    log(`${source}: ${uaRows.length} rows -> ${seen.length} products${files.includes(ruFile) ? `, ${paired} with Russian` : ''}`);
+    log(`${source} (${file}): ${uaRows.length} rows -> ${seen.length} products${hasRussian ? `, ${paired} with Russian` : ''}`);
   }
   return offers;
 }

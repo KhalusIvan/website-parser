@@ -2,7 +2,7 @@
 # Progress and the Excel file go to the Telegram chat that started it. The file is also kept as a
 # workflow artifact for 30 days (download it on the run page).
 name: Scrape
-run-name: "${{ inputs.source || 'vroda' }} · ${{ inputs.lang || 'ua' }} · ${{ inputs.mode || 'all' }}${{ inputs.url && format(' · {0}', inputs.url) || '' }}"
+run-name: "${{ inputs.source || 'vroda' }} · ${{ inputs.mode || 'all' }}${{ inputs.url && format(' · {0}', inputs.url) || '' }}"
 
 on:
   workflow_dispatch:
@@ -12,11 +12,6 @@ on:
         type: choice
         options: [vroda, jrl, mrd, babyliss, gama, immortal, jaguar, kucheryawiy, moser, spl, spl4barber, gloriana] # add new source ids here
         default: vroda
-      lang:
-        description: Language
-        type: choice
-        options: [ua, ru]
-        default: ua
       mode:
         description: What to scrape
         type: choice
@@ -32,7 +27,7 @@ on:
         type: string
         required: false
         default: ""
-  # Uncomment to refresh the whole site automatically (uses the defaults above: vroda, ua, all).
+  # Uncomment to refresh the whole site automatically (uses the defaults above: vroda, all).
   # schedule:
   #   - cron: "0 3 * * 1" # every Monday 03:00 UTC
 
@@ -44,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     concurrency:
-      group: scrape-${{ inputs.source || 'vroda' }}-${{ inputs.lang || 'ua' }}
+      group: scrape-${{ inputs.source || 'vroda' }}
       cancel-in-progress: false
     env:
       CHAT_ID: ${{ inputs.chat_id || vars.TELEGRAM_CHAT_ID }}
@@ -63,11 +58,10 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           IN_SOURCE: ${{ inputs.source || 'vroda' }}
-          IN_LANG: ${{ inputs.lang || 'ua' }}
           IN_MODE: ${{ inputs.mode || 'all' }}
           IN_URL: ${{ inputs.url }}
         run: >-
-          node src/cli.js "$IN_SOURCE" --lang "$IN_LANG" --mode "$IN_MODE" --url "$IN_URL"
+          node src/cli.js "$IN_SOURCE" --mode "$IN_MODE" --url "$IN_URL"
           --out-dir output --telegram-chat "$CHAT_ID"
 
       - name: Keep a copy as a workflow artifact
@@ -88,7 +82,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           STATUS: ${{ job.status }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TITLE: ${{ inputs.source || 'vroda' }} · ${{ inputs.lang || 'ua' }} · ${{ inputs.mode || 'all' }} ${{ inputs.url }}
+          TITLE: ${{ inputs.source || 'vroda' }} · ${{ inputs.mode || 'all' }} ${{ inputs.url }}
         run: |
           [ -z "$TELEGRAM_BOT_TOKEN" ] && exit 0
           [ -f output/.telegram-notified ] && exit 0

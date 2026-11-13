@@ -7,7 +7,6 @@
 //    canonical link, which has the category path in it).
 //  - vendor = the manufacturer shown on the page (Gloriana).
 import { createUpstoreSource } from './lib/upstore.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export default createUpstoreSource({
   id: 'gloriana',
@@ -15,8 +14,6 @@ export default createUpstoreSource({
   website: 'https://glorianapro.com',
   description: 'Official Gloriana Pro store: hair dryers, straighteners, curling irons, stylers and accessories.',
   languages: { ua: 'Українська', ru: 'Русский' },
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
   menu: '#additional-menu .nav-dopmenu > li',
   trailingSlash: true,
   followSubcategories: true,

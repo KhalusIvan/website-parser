@@ -10,7 +10,6 @@
 //    followed (today all of them are also in a category). Category cards show no stock status.
 //  - The Russian pages show the stock label in Ukrainian ("Немає в наявності"); its CSS class is used.
 import { createLuxshopSource } from './lib/luxshop.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export default createLuxshopSource({
   id: 'jaguar',
@@ -19,8 +18,6 @@ export default createLuxshopSource({
   description: 'Official Jaguar Solingen store: hairdressing scissors, clippers, hair dryers, brushes and accessories.',
   languages: { ua: 'Українська', ru: 'Русский' },
   vendor: 'Jaguar',
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
   skipCrumbPaths: ['all/'],
   lateCategory: /^Всі\s/i,
 });

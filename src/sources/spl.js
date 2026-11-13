@@ -1,5 +1,5 @@
 // spl-group.com.ua - SPL Group store (OpenCart, customised default theme). Ukrainian and Russian.
-// Same Excel columns as vroda. Notes about this site:
+// Same base columns as vroda; the shop's own characteristics as columns. Notes about this site:
 //  - Pages are /ua/... and /ru/... (the English /en/ version is ignored).
 //  - Top categories come from the catalogue menu (#horizontal-menu); subcategories from the category
 //    pages themselves (the menu misses a few, e.g. "Ножиці для лівшів"). Subcategories are visited
@@ -19,7 +19,6 @@
 //    one row per product page, options are not exported.
 import { fitDescription, htmlFirst, normText, trimChars } from '../core/html.js';
 import { createProduct, movePrices } from '../core/product.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export { fitDescription }; // shared, in core/html.js
 
@@ -230,8 +229,6 @@ export default {
     category: { label: 'One category (paste URL)', needsUrl: true },
   },
   concurrency: 2,
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
 
   /** Returns Map(productLink -> { category }). */
   async collectLinks({ lang, mode, url }, ctx) {

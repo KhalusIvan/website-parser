@@ -161,7 +161,7 @@ const depth = (url) => new URL(url).pathname.split('/').filter(Boolean).length;
 
 /**
  * settings:
- *  id, name, website, description, languages, columns - as in every source
+ *  id, name, website, description, languages - as in every source
  *  menu             selector of the top-level catalogue menu items (<li>)
  *  trailingSlash    the site's links end with "/"
  *  vendor           the brand used when the page shows no manufacturer (or always, see below)
@@ -312,7 +312,6 @@ export function createUpstoreSource(settings) {
       category: { label: 'One category (paste URL)', needsUrl: true },
     },
     concurrency: 2,
-    columns: settings.columns,
 
     /** Returns Map(productLink -> { category }). */
     async collectLinks({ lang, mode, url }, ctx) {

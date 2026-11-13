@@ -8,7 +8,6 @@ import * as cheerio from 'cheerio';
 import ExcelJS from 'exceljs';
 import jrl, { fitDescription, money, normalizeLink } from '../src/sources/jrl.js';
 import { scrape } from '../src/scrape.js';
-import { VRODA_UA_COLUMNS } from '../src/sources/vroda-columns.js';
 
 const fixture = (name) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
 
@@ -115,18 +114,18 @@ test('colour variants linked from product pages are scraped too, right after the
     'https://jrl.in.ua/grebeni/d': 'jrl-comb-d.html',
   });
   const outDir = mkdtempSync(path.join(tmpdir(), 'wp-'));
-  const summary = await scrape({ source: 'jrl', lang: 'ua', mode: 'category', url: 'https://jrl.in.ua/grebeni', outDir, http, log: () => {} });
+  const summary = await scrape({ source: 'jrl', mode: 'category', url: 'https://jrl.in.ua/grebeni', outDir, http, log: () => {} });
   assert.equal(summary.products, 4);
   assert.equal(summary.failed, 0);
 
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(path.join(outDir, summary.file));
   const sheet = wb.getWorksheet('Sheet0');
-  // every vroda column, in the same order, even though jrl fills in only vendor (+ the real
-  // attribute "Гарантія" of product C, sorted in among them)
-  const specs = sheet.getRow(1).values.slice(11);
-  assert.deepEqual(specs.filter((name) => name !== 'Гарантія'), VRODA_UA_COLUMNS);
-  assert.equal(specs.length, VRODA_UA_COLUMNS.length + 1);
+  // a Ukrainian-only site: no "(ru)" columns; only the site's own attributes (Гарантія of product C)
+  assert.deepEqual(sheet.getRow(1).values.slice(1), [
+    'link', 'name', 'category', 'images', 'description', 'price', 'price special', 'sku', 'parent', 'available', 'vendor', 'Гарантія',
+  ]);
+  assert.equal(summary.file, 'jrl-grebeni.xlsx');
   const rows = [];
   sheet.eachRow((r, i) => i > 1 && rows.push([r.getCell(1).text, r.getCell(2).text, r.getCell(3).text, r.getCell(10).text]));
   assert.deepEqual(rows, [

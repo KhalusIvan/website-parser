@@ -65,7 +65,7 @@ test('strangers are refused but can see their ID; nothing is started', async () 
   assert.equal(apis.calls.filter((c) => c.service === 'github').length, 0);
 });
 
-test('whole site: /new -> site -> mode -> language -> starts the workflow', async () => {
+test('whole site: /new -> site -> mode -> starts the workflow (all languages, no question)', async () => {
   const apis = fakeApis();
   const bot = createBot(ENV, { fetch: apis.fetch });
 
@@ -76,45 +76,36 @@ test('whole site: /new -> site -> mode -> language -> starts the workflow', asyn
   assert.deepEqual(buttonData(apis.sent()[1]), ['mode:vroda:all', 'mode:vroda:category']);
 
   await bot.handleUpdate(press('mode:vroda:all'));
-  assert.deepEqual(buttonData(apis.sent()[2]), ['run:vroda:all:ua', 'run:vroda:all:ru']);
-
-  await bot.handleUpdate(press('run:vroda:all:ru'));
   const [dispatch] = apis.dispatches();
   assert.equal(dispatch.path, '/actions/workflows/scrape.yml/dispatches');
   assert.deepEqual(dispatch.body, {
     ref: 'main',
-    inputs: { source: 'vroda', lang: 'ru', mode: 'all', url: '', chat_id: '4242' },
+    inputs: { source: 'vroda', mode: 'all', url: '', chat_id: '4242' },
   });
-  assert.match(apis.sent().at(-1).body.text, /Запущено.*Vroda · Русский · весь сайт/s);
+  assert.match(apis.sent().at(-1).body.text, /Запущено.*Vroda · весь сайт/s);
+
+  // a button of an older message (it still had a language) starts the same run
+  await bot.handleUpdate(press('run:vroda:all:ru'));
+  assert.deepEqual(apis.dispatches()[1].body.inputs, { source: 'vroda', mode: 'all', url: '', chat_id: '4242' });
 });
 
-test('category: send a link -> pick language -> starts the workflow with that URL', async () => {
+test('category: send a link -> starts the workflow with that URL right away', async () => {
   const apis = fakeApis();
   const bot = createBot(ENV, { fetch: apis.fetch });
   const url = 'https://www.vroda-ua.com/ru/uhod-za-licom-i-telom';
 
   await bot.handleUpdate(message(`please scrape ${url}`));
-  const question = apis.sent()[0];
-  assert.deepEqual(buttonData(question), ['url:ua', 'url:ru']);
-  assert.equal(question.body.reply_parameters.message_id, 7);
-
-  // Telegram sends back the bot's question (plain text) with the button press.
-  await bot.handleUpdate(press('url:ua', `Vroda · ${url}\nWhich language?`));
-  assert.deepEqual(apis.dispatches()[0].body.inputs, { source: 'vroda', lang: 'ua', mode: 'category', url, chat_id: '4242' });
-});
-
-test('a site with one language skips the language question (jrl)', async () => {
-  const apis = fakeApis();
-  const bot = createBot(ENV, { fetch: apis.fetch });
+  assert.deepEqual(apis.dispatches()[0].body.inputs, { source: 'vroda', mode: 'category', url, chat_id: '4242' });
+  const reply = apis.sent().at(-1);
+  assert.equal(reply.body.reply_parameters.message_id, 7);
+  assert.match(reply.body.text, /Запущено.*Vroda · https:\/\/www\.vroda-ua\.com/s);
 
   await bot.handleUpdate(press('mode:jrl:all'));
-  assert.deepEqual(apis.dispatches()[0].body.inputs, { source: 'jrl', lang: 'ua', mode: 'all', url: '', chat_id: '4242' });
-  assert.match(apis.sent().at(-1).body.text, /Запущено.*JRL · Українська · весь сайт/s);
+  assert.deepEqual(apis.dispatches()[1].body.inputs, { source: 'jrl', mode: 'all', url: '', chat_id: '4242' });
 
-  await bot.handleUpdate(message('https://jrl.in.ua/komplektuyuchi/mashinki-1/'));
-  assert.deepEqual(apis.dispatches()[1].body.inputs, {
-    source: 'jrl', lang: 'ua', mode: 'category', url: 'https://jrl.in.ua/komplektuyuchi/mashinki-1/', chat_id: '4242',
-  });
+  // a button of an older message ("which language?") still works
+  await bot.handleUpdate(press('url:ua', `Vroda · ${url}\nWhich language?`));
+  assert.deepEqual(apis.dispatches()[2].body.inputs, { source: 'vroda', mode: 'category', url, chat_id: '4242' });
 });
 
 test('unknown website and GitHub errors are reported in the chat', async () => {

@@ -19,7 +19,6 @@ const TEXT = {
   yourId: (id) => `Ваш Telegram ID: <code>${id}</code>`,
   chooseSource: 'Який сайт?',
   chooseMode: (s) => `<b>${esc(s.name)}</b> – що зібрати?`,
-  chooseLang: (s, what) => `<b>${esc(s.name)}</b> · ${esc(what)}\nЯкою мовою?`,
   sendLink: (s) => `Надішліть посилання на категорію на ${esc(s.website)}`,
   unknownSite: (url) =>
     `Я не знаю цього сайту: ${esc(url)}\nЯ вмію збирати: ${SOURCES.map((s) => esc(s.website)).join(', ')}`,
@@ -71,9 +70,8 @@ const sourceById = (id) => {
 const sourceForUrl = (url) => SOURCES.find((s) => hostOf(s.website) === hostOf(url));
 const urlMode = (source) => Object.keys(source.modes).find((m) => source.modes[m].needsUrl);
 
-/** "Vroda · Українська · весь сайт" or "Vroda · Русский · https://..." */
-export const jobTitle = (source, mode, lang, url) =>
-  [source.name, source.languages[lang] ?? lang, url || (mode === 'all' ? TEXT.wholeSite : mode)].join(' · ');
+/** "Vroda · весь сайт" or "Vroda · https://..." (every scrape has all the site's languages) */
+export const jobTitle = (source, mode, url) => [source.name, url || (mode === 'all' ? TEXT.wholeSite : mode)].join(' · ');
 
 const modeLabel = (source, mode) => TEXT.modes[mode] ?? source.modes[mode]?.label ?? mode;
 
@@ -196,20 +194,13 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
     };
   }
 
-  function langMenu(source, what, dataPrefix) {
-    return {
-      text: TEXT.chooseLang(source, what),
-      extra: buttons(Object.entries(source.languages).map(([id, label]) => [label, `${dataPrefix}:${id}`])),
-    };
-  }
-
   /** Starts the workflow and returns the view that replaces the menu. */
-  async function startRun(chatId, source, mode, lang, url = '') {
-    const job = jobTitle(source, mode, lang, url);
+  async function startRun(chatId, source, mode, url = '') {
+    const job = jobTitle(source, mode, url);
     try {
       await github(`/actions/workflows/${workflow}/dispatches`, {
         method: 'POST',
-        body: { ref, inputs: { source: source.id, lang, mode, url, chat_id: String(chatId) } },
+        body: { ref, inputs: { source: source.id, mode, url, chat_id: String(chatId) } },
       });
       return { text: TEXT.started(job) };
     } catch (err) {
@@ -271,10 +262,7 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
     const mode = urlMode(source);
     if (!mode) return send(chatId, { text: TEXT.noCategoryMode(source) });
 
-    const langs = Object.keys(source.languages);
-    if (langs.length === 1) return send(chatId, await startRun(chatId, source, mode, langs[0], url));
-    // The URL is repeated in the question, so the button handler can read it back from the message.
-    return send(chatId, langMenu(source, url, 'url'), { reply_parameters: { message_id: message.message_id } });
+    return send(chatId, await startRun(chatId, source, mode, url), { reply_parameters: { message_id: message.message_id } });
   }
 
   async function onCallback(query) {
@@ -294,18 +282,21 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
         case 'mode': {
           const source = sourceById(args[0]);
           const mode = args[1];
-          const langs = Object.keys(source.languages);
-          if (source.modes[mode]?.needsUrl) await edit(message, { text: TEXT.sendLink(source) });
-          else if (langs.length === 1) await edit(message, await startRun(message.chat.id, source, mode, langs[0]));
-          else await edit(message, langMenu(source, modeLabel(source, mode), `run:${source.id}:${mode}`));
+          if (source.modes[mode]?.needsUrl) {
+            await edit(message, { text: TEXT.sendLink(source) });
+          } else {
+            await edit(message, { text: TEXT.starting(jobTitle(source, mode)) }); // removes the buttons
+            await edit(message, await startRun(message.chat.id, source, mode));
+          }
           break;
         }
 
+        // Buttons of older messages (they still asked for a language, which is now ignored).
         case 'run': {
-          const [id, mode, lang] = args;
+          const [id, mode] = args;
           const source = sourceById(id);
-          await edit(message, { text: TEXT.starting(jobTitle(source, mode, lang)) }); // removes the buttons
-          await edit(message, await startRun(message.chat.id, source, mode, lang));
+          await edit(message, { text: TEXT.starting(jobTitle(source, mode)) });
+          await edit(message, await startRun(message.chat.id, source, mode));
           break;
         }
 
@@ -313,9 +304,8 @@ export function createBot(env, { fetch: http = (...args) => fetch(...args), now 
           const url = (message.text ?? '').match(URL_RE)?.[0] ?? message.reply_to_message?.text?.match(URL_RE)?.[0];
           const source = url && sourceForUrl(url);
           if (!source) throw new Error(TEXT.linkLost);
-          const lang = args[0];
-          await edit(message, { text: TEXT.starting(jobTitle(source, urlMode(source), lang, url)) });
-          await edit(message, await startRun(message.chat.id, source, urlMode(source), lang, url));
+          await edit(message, { text: TEXT.starting(jobTitle(source, urlMode(source), url)) });
+          await edit(message, await startRun(message.chat.id, source, urlMode(source), url));
           break;
         }
 

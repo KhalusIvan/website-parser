@@ -139,7 +139,6 @@ function descriptionHtml($, selector) {
  *   brandSpec       - name of the attribute that holds the brand (e.g. "Виробник"), optional
  *   brand           - the shop's brand, used when the page shows none
  *   descriptionFallback - selector used when the description tab is missing/empty, optional
- *   columns         - Excel columns exported even when empty ({ ua: [...] })
  */
 export function createWooSource(site) {
   const home = `${site.website}/`;
@@ -283,7 +282,6 @@ export function createWooSource(site) {
       category: { label: 'One category (paste URL)', needsUrl: true },
     },
     concurrency: 2,
-    columns: site.columns,
     collectLinks,
     parseProduct,
   };

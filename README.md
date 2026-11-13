@@ -4,7 +4,14 @@ Scrapes online shops and exports their product catalog to Excel (`.xlsx`).
 You control it from a **Telegram bot**. The scraping runs in **GitHub Actions**, and the bot runs on
 **Cloudflare Workers**. Both are free.
 
-Supported websites (all produce the same Excel columns):
+Supported websites. One scrape = one Excel file with all the site's languages (`<site>.xlsx`): the
+Ukrainian columns, each followed by its Russian one for sites that have a Russian version:
+
+`link`, `link (ru)`, `name`, `name (ru)`, `category`, `category (ru)`, `images`, `description`,
+`description (ru)`, `price`, `price special`, `sku`, `parent`, `available`, then the site's own
+characteristics, each followed by its Russian value (`Колір`, `Колір (ru)`). Sheet `Attributes` gives
+the Russian name of every characteristic. Ukrainian-only sites have no `(ru)` columns. The Russian page
+of a product is found by its photo, article or link (every product of every site was paired so far).
 
 | Source | Website | Languages | Notes |
 |---|---|---|---|
@@ -24,8 +31,8 @@ Supported websites (all produce the same Excel columns):
 All of them: `price` = regular price and `price special` = sale price; `available` comes from the
 visible stock label (pre-order and "expected" count as not available, because many sites' hidden
 schema data says "InStock" for everything); `name` is the catalogue name, not a longer SEO heading;
-`vendor` is the product's brand (the shop's own brand where the page shows none); the Ukrainian files
-have all vroda spec columns plus the shop's own specs. Where products link other products that no
+`vendor` is the product's brand (the shop's own brand where the page shows none); every site has its
+own characteristics columns. Where products link other products that no
 category lists (colour variants, sizes, scissor pairs), those are followed too. Gama, Moser and
 SPL4Barber share one server that blocks IPs which load it too fast: don't test them in parallel.
 Shared code per shop platform is in `src/sources/lib/` (OpenCart "upstore": mrd, immortal,
@@ -36,15 +43,13 @@ in its sitemap) and these are not exported; SPL Group has 2 such products (manne
 products have a "sale" price above the regular one on the site itself, so the two are swapped.
 
 jrl.in.ua differences: category pages show only one colour of each comb; the other colours are
-linked from its product page ("Колір"), so they are followed and exported right after it. The file
-has all the spec columns of the vroda file (`src/sources/vroda-columns.js`), but the site has no
-specifications table, so they stay empty: `vendor` is always JRL, and real attributes the
+linked from its product page ("Колір"), so they are followed and exported right after it. The site has
+no specifications table: `vendor` is always JRL, and real attributes the
 shop fills in become columns (placeholders like "атрибут 1" are skipped), `available` comes from the visible stock label because the hidden
 schema data says "InStock" even for sold-out products, and descriptions that are too long for an
 Excel cell (Word-pasted HTML) have their inline styles removed instead of being cut off.
 
-mrd-pro.com.ua: the shop's own specifications ("Характеристики") become columns, next to the
-vroda columns (Ukrainian file only; there is no list of vroda's Russian columns yet). `name` is the
+mrd-pro.com.ua: the shop's own specifications ("Характеристики") become columns. `name` is the
 catalogue name of the product, not the longer heading on its page. `vendor` is always MRD PRO.
 "Передзамовлення" (pre-order) counts as not available. The Russian menu of the site links some
 categories to the Ukrainian pages, so the Russian category links are built as `/ru/` + the Ukrainian path.
@@ -54,8 +59,8 @@ categories to the Ukrainian pages, so the Russian category links are built as `/
 ```
 Telegram                 Cloudflare Worker (bot/)            GitHub Actions (.github/workflows/scrape.yml)
 ┌──────────────┐  /new   ┌────────────────────────┐  start  ┌─────────────────────────────────────────┐
-│ you          │ ──────▶ │ buttons: site, whole   │ ──────▶ │ node src/cli.js vroda --lang ua ...     │
-│              │         │ site/category, language│         │                                         │
+│ you          │ ──────▶ │ buttons: site, whole   │ ──────▶ │ node src/cli.js vroda --mode all        │
+│              │         │ site or category       │         │                                         │
 │              │ ◀────────────────────────────────────────── │ progress message, then the .xlsx file   │
 └──────────────┘                                            └─────────────────────────────────────────┘
 ```
@@ -72,8 +77,8 @@ Telegram                 Cloudflare Worker (bot/)            GitHub Actions (.gi
 
 | You send | What happens |
 |---|---|
-| `/new` | Choose *Whole site* or *One category*, then the language. Then wait for the file. |
-| a category link, e.g. `https://vroda-ua.com/ru/uhod-za-licom-i-telom` | Choose the language. Only that category is scraped. |
+| `/new` | Choose the site and *Whole site* or *One category*. Then wait for the file (all languages in one file). |
+| a category link, e.g. `https://vroda-ua.com/ru/uhod-za-licom-i-telom` | Starts right away. Only that category is scraped (in all languages). |
 | `/status` | Shows the last 5 runs, with a *Cancel* button for a running one. |
 | `/id` | Shows your Telegram ID. Works for everyone. |
 
@@ -138,7 +143,8 @@ To see the bot's errors live, run `npm run bot:logs`.
 
 ## One catalog for Mainmarket
 
-`npm run catalog` combines all scraped files in `output/` (`<shop>-UA.xlsx`, `<shop>-RU.xlsx`) into one
+`npm run catalog` combines all scraped files in `output/` (`<shop>.xlsx`; files of older runs,
+`<shop>-UA.xlsx` + `<shop>-RU.xlsx`, are read too) into one
 catalog in `output/mainmarket/`:
 
 - `mainmarket-catalog.xlsx`: sheets Products, Attributes, Categories, Brands, Images, Supplier offers,
@@ -170,11 +176,10 @@ How the products are put together (`src/catalog/`):
 ```bash
 npm install
 npm run scrape                                    # asks questions, like the jar did
-npm run scrape -- vroda --lang ua --mode all      # whole site -> output/vroda-UA.xlsx
-npm run scrape -- vroda --lang ru --mode category --url https://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki
-npm run scrape -- vroda --lang ua --mode all --limit 20   # quick test: only the first 20 products
-npm run scrape -- jrl --lang ua --mode all        # jrl.in.ua -> output/jrl-UA.xlsx
-npm run scrape -- mrd --lang ru --mode all        # mrd-pro.com.ua -> output/mrd-RU.xlsx
+npm run scrape -- vroda --mode all                # whole site, Ukrainian + Russian -> output/vroda.xlsx
+npm run scrape -- vroda --mode category --url https://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki
+npm run scrape -- vroda --mode all --limit 20     # quick test: only the first 20 products of each language
+npm run scrape -- jrl --mode all                  # jrl.in.ua (Ukrainian only) -> output/jrl.xlsx
 ```
 
 Add `--telegram-chat <your id>` (with `TELEGRAM_BOT_TOKEN` set in the environment) to get the
@@ -194,9 +199,12 @@ To compare with the original jar:
 
 ```bash
 printf 'ua\ncategory\nhttps://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki\n' | java -jar vroda.jar
-npm run scrape -- vroda --lang ua --mode category --url https://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki
-npm run compare -- vroda-UA.xlsx output/vroda-UA-zasobi-dlya-doglyadu-perukars-koji-tehniki.xlsx
+npm run scrape -- vroda --mode category --url https://vroda-ua.com/zasobi-dlya-doglyadu-perukars-koji-tehniki
+npm run compare -- vroda-UA.xlsx output/vroda-zasobi-dlya-doglyadu-perukars-koji-tehniki.xlsx
 ```
+
+The app's file also has the `(ru)` columns and the shop's own characteristics only, so `compare`
+lists those as extra/missing columns; the Ukrainian values are compared cell by cell.
 
 Known difference: `vroda.jar` read the first "old price" anywhere on the product page. That is often
 the old price of a random product in the *related products* carousel (a different one on every page
@@ -217,8 +225,7 @@ with jar exports. Products with a real discount: `price` = old price, `price spe
      modes: { all: { label: 'Whole site', needsUrl: false },
               category: { label: 'One category (paste URL)', needsUrl: true } },
      concurrency: 2,
-     columns: { ua: VRODA_UA_COLUMNS },  // optional: spec columns to export even if empty
-     // returns Map(productUrl -> category name)
+     // returns Map(productUrl -> category name), for one language (called once per language)
      async collectLinks({ lang, mode, url }, { http, log }) { ... },
      // returns createProduct({...}) for one product page; call addProduct(link, extra) for more
      // products found on the page that aren't in any category (e.g. colour variants)
@@ -228,7 +235,7 @@ with jar exports. Products with a real discount: `price` = old price, `price spe
    `http.getHtml(url)` returns a [cheerio](https://cheerio.js.org/) document (jQuery-like `$`).
    Helpers in `src/core/html.js` (`textFirst`, `hrefs`, `specsFromRows`, …) cover the usual cases.
 2. Register it in `src/sources/index.js`.
-3. Add the id to the `source` options in `.github/workflows/scrape.yml` (and any new language code to `lang`).
+3. Add the id to the `source` options in `.github/workflows/scrape.yml`.
 4. Add a fixture-based test in `test/`.
 5. Run `npm run bot:deploy`. This updates the bot's list of websites (`bot/sources.generated.js`)
    and deploys it. The bot then shows the new site, and links to it are recognised.

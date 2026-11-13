@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Usage:
 //   node src/cli.js                                   (asks everything interactively)
-//   node src/cli.js vroda --lang ua --mode all
-//   node src/cli.js vroda --lang ru --mode category --url https://vroda-ua.com/...
+//   node src/cli.js vroda --mode all                  (all the site's languages in one file)
+//   node src/cli.js vroda --mode category --url https://vroda-ua.com/...
 // Options: --out-dir output  --concurrency 2  --limit 0 (0 = no limit, handy for quick tests)
 //          --telegram-chat <chat id>  send progress + the Excel file to Telegram
 //                                     (bot token in the TELEGRAM_BOT_TOKEN env variable)
@@ -18,7 +18,6 @@ import { createReporter, createTelegram } from './notify/telegram.js';
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
-    lang: { type: 'string' },
     mode: { type: 'string' },
     url: { type: 'string' },
     'out-dir': { type: 'string', default: 'output' },
@@ -30,7 +29,7 @@ const { values, positionals } = parseArgs({
 });
 
 if (values.help) {
-  console.log(`node src/cli.js <source> --lang <lang> --mode <mode> [--url <category url>]
+  console.log(`node src/cli.js <source> --mode <mode> [--url <category url>]
 Sources:`);
   for (const s of sources) {
     console.log(`  ${s.id.padEnd(10)} ${s.website}  langs: ${Object.keys(s.languages).join(', ')}  modes: ${Object.keys(s.modes).join(', ')}`);
@@ -48,8 +47,8 @@ async function ask(question, allowed) {
   }
 }
 
-/** Telegram reporter, when --telegram-chat is given (e.g. "Vroda · Українська · весь сайт"). */
-function telegramReporter(chatId, source, lang, mode, url) {
+/** Telegram reporter, when --telegram-chat is given (e.g. "Vroda · весь сайт"). */
+function telegramReporter(chatId, source, mode, url) {
   if (!chatId) return null;
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
@@ -58,7 +57,7 @@ function telegramReporter(chatId, source, lang, mode, url) {
   }
   const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID } = process.env;
   const runUrl = GITHUB_RUN_ID ? `${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}` : '';
-  const title = [source.name, source.languages[lang] ?? lang, mode === 'all' ? 'весь сайт' : url || mode].join(' · ');
+  const title = [source.name, mode === 'all' ? 'весь сайт' : url || mode].join(' · ');
   return createReporter({ telegram: createTelegram({ token, chatId }), title, runUrl });
 }
 
@@ -72,16 +71,14 @@ let reporter = null;
 try {
   const sourceId = positionals[0] ?? (await ask('Source', sources.map((s) => s.id)));
   const source = getSource(sourceId);
-  const lang = values.lang ?? (await ask('Language', Object.keys(source.languages)));
   const mode = values.mode ?? (await ask('Mode', Object.keys(source.modes)));
   const url = values.url ?? (source.modes[mode]?.needsUrl ? await ask('Category URL') : '');
   rl?.close();
 
-  reporter = telegramReporter(values['telegram-chat'], source, lang, mode, url);
+  reporter = telegramReporter(values['telegram-chat'], source, mode, url);
   await reporter?.start();
   const summary = await scrape({
     source: sourceId,
-    lang,
     mode,
     url,
     outDir: values['out-dir'],

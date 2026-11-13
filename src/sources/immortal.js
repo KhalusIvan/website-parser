@@ -11,7 +11,6 @@
 //  - vendor = the manufacturer shown on the page (Immortal, Immortal Infuse, Immortal NYC);
 //    some products show none, then it is Immortal (the shop's brand).
 import { createUpstoreSource } from './lib/upstore.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export default createUpstoreSource({
   id: 'immortal',
@@ -19,8 +18,6 @@ export default createUpstoreSource({
   website: 'https://immortal.com.ua',
   description: 'Official Immortal store: beard, hair and face care, perfumes and barber accessories.',
   languages: { ua: 'Українська' },
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
   menu: '#additional-menu .nav-dopmenu > li',
   trailingSlash: true,
   pageQuery: true, // category pages are /category/?page=2 (/category/page-2 is 404)

@@ -90,20 +90,33 @@ test('Excel file has the jar column layout', async () => {
   assert.equal(row(3)[9], '-');
 });
 
-test('scrape() skips failing products and writes file + summary', async () => {
+test('scrape() runs both languages, skips failing products and writes one file + summary', async () => {
   const http = fakeHttp({
     'https://vroda-ua.com/kategoriya': 'vroda-category.html',
     'https://vroda-ua.com/kategoriya?page=1': 'vroda-category.html',
     'https://vroda-ua.com/kategoriya?page=2': 'vroda-empty.html',
     'https://vroda-ua.com/ru/kategoriya': 'vroda-category.html',
+    'https://vroda-ua.com/ru/kategoriya?page=1': 'vroda-category.html',
+    'https://vroda-ua.com/ru/kategoriya?page=2': 'vroda-empty.html',
     'https://vroda-ua.com/kategoriya/product-1': 'vroda-product.html',
-    // product-2 -> 404
+    // product-2 -> 404 (in both languages)
   });
   const outDir = mkdtempSync(path.join(tmpdir(), 'wp-'));
-  const summary = await scrape({ source: 'vroda', lang: 'ua', mode: 'category', url: 'https://vroda-ua.com/kategoriya', outDir, http, log: () => {} });
+  const summary = await scrape({ source: 'vroda', mode: 'category', url: 'https://vroda-ua.com/kategoriya', outDir, http, log: () => {} });
+  assert.deepEqual(summary.languages, ['ua', 'ru']);
   assert.equal(summary.products, 1);
-  assert.equal(summary.failed, 1);
-  assert.equal(summary.file, 'vroda-UA-kategoriya.xlsx');
+  assert.equal(summary.withRussian, 1);
+  assert.equal(summary.failed, 2);
+  assert.equal(summary.file, 'vroda-kategoriya.xlsx');
+
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(path.join(outDir, summary.file));
+  const header = wb.getWorksheet('Sheet0').getRow(1).values.slice(1);
+  assert.deepEqual(header.slice(0, 14), [
+    'link', 'link (ru)', 'name', 'name (ru)', 'category', 'category (ru)', 'images', 'description', 'description (ru)',
+    'price', 'price special', 'sku', 'parent', 'available',
+  ]);
+  assert.ok(wb.getWorksheet('Attributes')); // Russian names of the attribute columns
 });
 
 test('old price of a related product (random carousel) is ignored', async () => {

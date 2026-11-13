@@ -12,7 +12,6 @@
 //    empty when the page shows none.
 //  - About 300 products are in no category (only in the sitemap) and are not exported.
 import { createUpstoreSource } from './lib/upstore.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 export default createUpstoreSource({
   id: 'kucheryawiy',
@@ -20,8 +19,6 @@ export default createUpstoreSource({
   website: 'https://kucheryawiy.com.ua',
   description: 'Shop for hairdressers and barbers: clippers, trimmers, dryers, scissors, tools, spare parts and salon equipment.',
   languages: { ua: 'Українська', ru: 'Русский' },
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
   menu: '#additional-menu .nav-dopmenu > li',
   trailingSlash: true,
   translatedPaths: true,

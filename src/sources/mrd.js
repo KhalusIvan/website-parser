@@ -8,7 +8,6 @@
 //  - "Передзамовлення" (pre-order) counts as not available ("-"), like "Немає в наявності".
 //  - vendor is always MRD PRO (the only brand of the shop).
 import { createUpstoreSource, money, upstoreUrls } from './lib/upstore.js';
-import { VRODA_UA_COLUMNS } from './vroda-columns.js';
 
 const SITE = { website: 'https://mrd-pro.com.ua', trailingSlash: false };
 
@@ -21,8 +20,6 @@ export default createUpstoreSource({
   name: 'MRD PRO',
   description: 'Official MRD PRO store: clippers, trimmers, shavers, sets and spare parts.',
   languages: { ua: 'Українська', ru: 'Русский' },
-  // Same spec columns as the vroda file (Ukrainian), even if empty here; the shop's own specs are added.
-  columns: { ua: VRODA_UA_COLUMNS },
   menu: '#menu-vertical-list > li',
   vendor: 'MRD PRO',
 });
