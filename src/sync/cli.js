@@ -12,7 +12,7 @@ import { parseArgs } from 'node:util';
 import { sources } from '../sources/index.js';
 import { scrape } from '../scrape.js';
 import { buildCatalog } from '../catalog/build.js';
-import { offerLinks, writeFeed } from './feed.js';
+import { incomplete, offerLinks, writeFeed } from './feed.js';
 import { scrapeLinks } from './quick.js';
 
 const { values } = parseArgs({
@@ -65,28 +65,34 @@ await mkdir(out, { recursive: true });
 for (const id of ids) await rm(path.join(out, `${id}.xlsx`), { force: true });
 const started = Date.now();
 
+// the product pages of the previous full run (with the products' keys)
+const previousLinks = existsSync(offersFile) ? JSON.parse(readFileSync(offersFile, 'utf8')) : [];
+
 let report;
 if (mode === 'full') {
   report = await inGroups(ids, async (id) => {
     const s = await scrape({ source: id, mode: 'all', outDir: out, limit: Number(values.limit), log: (m) => (/ERROR|Found|Done|blocked/.test(m) ? log(`[${id}] ${m}`) : null) });
-    return { products: s.products, failed: s.failed };
+    return { products: s.products, failed: s.failed, failedLinks: s.failedLinks };
   });
 } else {
-  const links = JSON.parse(readFileSync(offersFile, 'utf8'));
   const bySource = {};
-  for (const l of links) (bySource[l.source] ??= []).push(l);
+  for (const l of previousLinks) (bySource[l.source] ??= []).push(l);
   report = await inGroups(ids.filter((id) => bySource[id]), (id) => scrapeLinks(id, Number(values.limit) > 0 ? bySource[id].slice(0, Number(values.limit)) : bySource[id], { outDir: out, log }));
 }
 
 const partnerFile = existsSync(values.partner) ? values.partner : null;
 log(partnerFile ? `Partner list: ${partnerFile}` : 'No partner list (data/partner.json): all products');
 const catalog = await buildCatalog({ dir: out, partnerFile, log });
-const n = await writeFeed(catalog, path.join(out, 'site-feed.ndjson'), mode);
+const { partial, keep } = incomplete(report, previousLinks);
+if (partial.length) log(`Incomplete sites: ${partial.join(', ')}; products kept as they are: ${keep.length}`);
+const n = await writeFeed(catalog, path.join(out, 'site-feed.ndjson'), mode, { partial, keep });
 if (mode === 'full') {
   await writeFile(offersFile, JSON.stringify(offerLinks(catalog)));
   await writeFile(path.join(out, 'offers.fresh'), new Date().toISOString()); // tells the workflow to keep it
 }
-const summary = { mode, products: n, minutes: Math.round((Date.now() - started) / 6000) / 10, sources: report };
+// the report without the (long) lists of failed pages
+const bySite = Object.fromEntries(Object.entries(report).map(([id, { failedLinks, ...r }]) => [id, r]));
+const summary = { mode, products: n, minutes: Math.round((Date.now() - started) / 6000) / 10, sources: bySite, partial, kept: keep.length };
 await writeFile(path.join(out, 'sync-report.json'), JSON.stringify(summary, null, 2));
 log(`Feed: ${n} products, ${summary.minutes} min`);
 const broken = Object.entries(report).filter(([, r]) => !r.ok).map(([id]) => id);

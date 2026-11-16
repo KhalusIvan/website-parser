@@ -21,6 +21,9 @@ const randomBetween = (min, max) => min + Math.random() * (max - min);
  *  - up to `retries` attempts for network errors / 5xx
  *  - 404/410 fail immediately (the product is skipped)
  *  - 403/429 (site blocked us) -> wait 5-7 minutes, then try again
+ *  - pages failing with network errors several times in a row (a site that blocks by dropping the
+ *    connection) -> the same pause; all such pauses of one client together are capped by `pauseBudgetMs`,
+ *    after that failing pages fail fast (the run must still finish in time)
  */
 export function createHttp({
   userAgent = DEFAULT_USER_AGENT,
@@ -29,8 +32,13 @@ export function createHttp({
   retryDelayMs = 2_000,
   blockedWaitMs = [5 * 60_000, 7 * 60_000],
   maxBlockedWaits = 6,
+  failStreak = 3,
+  pauseBudgetMs = 60 * 60_000, // summed over threads: about 30 min of waiting with 2 threads
   log = console.log,
 } = {}) {
+  let streak = 0; // pages that failed one after another
+  let paused = 0; // ms spent in pauses after network errors
+
   async function getText(url) {
     let attempt = 0;
     let blockedWaits = 0;
@@ -45,7 +53,11 @@ export function createHttp({
           redirect: 'follow',
           signal: AbortSignal.timeout(timeoutMs),
         });
-        if (res.ok) return await res.text();
+        if (res.ok) {
+          const text = await res.text();
+          streak = 0;
+          return text;
+        }
 
         if (res.status === 404 || res.status === 410) throw new HttpError(res.status, url);
         if (res.status === 403 || res.status === 429) {
@@ -61,8 +73,20 @@ export function createHttp({
       } catch (err) {
         if (err instanceof HttpError && !err.retryable) throw err;
         attempt += 1;
-        if (attempt >= retries) throw err;
-        await sleep(retryDelayMs * attempt);
+        if (attempt < retries) {
+          await sleep(retryDelayMs * attempt);
+          continue;
+        }
+        streak += 1;
+        if (streak >= failStreak && paused < pauseBudgetMs) {
+          const wait = Math.min(randomBetween(...blockedWaitMs), pauseBudgetMs - paused);
+          paused += wait;
+          log(`${streak} pages failed in a row (${err.message}) - the site may have blocked us, sleeping ${Math.round(wait / 1000)}s`);
+          await sleep(wait);
+          attempt = 0;
+          continue;
+        }
+        throw err;
       }
     }
   }

@@ -26,5 +26,5 @@ export async function scrapeLinks(sourceId, items, { outDir = 'output', log = co
   const products = results.map((r) => r.value).filter(Boolean);
   await writeXlsx(path.join(outDir, `${sourceId}.xlsx`), products, { log, ruNames: null });
   log(`[${sourceId}] ${products.length} of ${items.length} pages (${failed.length} failed)`);
-  return { products: products.length, failed: failed.length };
+  return { products: products.length, failed: failed.length, failedLinks: failed };
 }

@@ -210,5 +210,5 @@ export async function scrape({
   };
   await writeFile(`${file}.json`, JSON.stringify(summary, null, 2));
   log(`Done: ${products.length} products written to ${file}${failed.length ? ` (${failed.length} failed)` : ''}`);
-  return summary;
+  return { ...summary, failedLinks: failed }; // all of them (the file keeps the first 200)
 }
