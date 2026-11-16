@@ -1,0 +1,74 @@
+# The shop's automatic update. Started by the shop (MainMarket admin → Синхронізація) through the
+# GitHub API, on its schedule or with the "now" buttons; can also be started by hand here.
+#   mode quick: prices and stock from the product pages of the last full run (~half the time of a full one)
+#   mode full:  all sites, both languages: new products, texts, characteristics
+# The result (artifact "site-feed") is downloaded by the shop, which applies it product by product.
+name: Sync
+run-name: "sync · ${{ inputs.mode }} · ${{ inputs.request_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: quick = prices and stock, full = everything
+        type: choice
+        options: [quick, full]
+        default: quick
+      request_id:
+        description: Set by the shop to find this run (any text when started by hand)
+        type: string
+        required: false
+        default: manual
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: shop-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # --ignore-scripts: dependencies can't run their own code while installing
+      - run: npm ci --ignore-scripts
+
+      # the list of product pages from the last full run (quick runs need it)
+      - name: Product pages of the last full run
+        uses: actions/cache/restore@v4
+        with:
+          path: output/offers.json
+          key: offers-${{ github.run_id }}
+          restore-keys: offers-
+
+      - name: Scrape and build the feed
+        env:
+          MODE: ${{ inputs.mode }}
+        run: node src/sync/cli.js --mode "$MODE" --out output
+
+      - name: Keep the product pages for quick runs
+        if: success() && hashFiles('output/offers.fresh') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: output/offers.json
+          key: offers-${{ github.run_id }}
+
+      - name: Result for the shop
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-feed
+          path: |
+            output/site-feed.ndjson
+            output/sync-report.json
+          retention-days: 3
+          compression-level: 9

@@ -5,7 +5,7 @@
 //   npm run catalog -- --in output --out output/mainmarket
 //   npm run catalog -- --partner output/database/partner.xlsx   # only the partner's products, partner codes
 //                                         (default: the newest .xlsx/.csv in output/database; --partner none = off)
-import { readdirSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { buildCatalog } from './build.js';
@@ -21,8 +21,9 @@ const { values } = parseArgs({
   },
 });
 
-/** The newest partner list in <in>/database (.xlsx or .csv), or null. */
+/** The shop's list (data/partner.json), else the newest partner list in <in>/database (.xlsx or .csv), or null. */
 function newestPartnerList(dir) {
+  if (existsSync('data/partner.json')) return 'data/partner.json';
   const db = path.join(dir, 'database');
   try {
     return readdirSync(db)

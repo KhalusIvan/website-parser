@@ -181,6 +181,33 @@ How the products are put together (`src/catalog/`):
 - **Categories** (`taxonomy.js`): one tree by product type (brand is a separate field); rules map the
   shops' categories and product names into it.
 
+## Automatic updates of the shop (MainMarket)
+
+The shop starts `.github/workflows/sync.yml` itself (MainMarket admin → Синхронізація), on its own
+schedule or with the "now" buttons, and downloads the result:
+
+- `quick`: only the product pages the shop sells (the list `output/offers.json` from the last full run,
+  kept in the Actions cache), Ukrainian only, no category crawling: fresh prices and stock.
+- `full`: every site in all languages, like `npm run scrape` for each, then the catalog. Sites that
+  share a server (gama, moser, spl4barber) go one after another, the others at the same time.
+
+Both write `output/site-feed.ndjson` (first line: categories and brands, then one product per line,
+the same fields as `mainmarket-catalog.json`) and `output/sync-report.json` (minutes, products and
+failures per site), uploaded as the artifact `site-feed`. Photos are not downloaded here: the shop
+downloads the photos of new products itself.
+
+The partner list comes from `data/partner.json`: when a new partner price file is sent to the shop's
+Telegram bot, the shop writes its codes, names and brand groups (no prices) here through the GitHub API.
+`npm run catalog` uses it too when it exists.
+
+```bash
+node src/sync/cli.js --mode full --out output              # what the workflow runs
+node src/sync/cli.js --mode quick --only jrl,mrd --limit 20 # a quick local test
+```
+
+The shop's GitHub token needs, for this repository only: *Actions: Read and write* (start the
+workflow, download the result) and *Contents: Read and write* (data/partner.json).
+
 ## Running locally
 
 ```bash

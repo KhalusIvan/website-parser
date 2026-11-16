@@ -42,8 +42,32 @@ export function partnerItems(rows) {
   return items;
 }
 
-/** Reads the partner list (.xlsx: first sheet; .csv: comma or semicolon separated). */
+/**
+ * The list the shop keeps in the repository (data/partner.json, written by the shop when a new
+ * partner price file is sent to its bot): { items: [[code, name, group], ...] }. The groups become
+ * header rows again, as in the partner's Excel file.
+ */
+export function partnerJsonRows(json) {
+  const rows = [];
+  let group = null;
+  for (const [code, name, grp = ''] of json.items ?? []) {
+    if (grp !== group) {
+      if (grp) rows.push(['', grp]);
+      group = grp;
+    }
+    rows.push([code, name]);
+  }
+  return rows;
+}
+
+/**
+ * Reads the partner list: data/partner.json from the shop, .xlsx (sheet "Номенклатура", else the
+ * first sheet) or .csv (comma or semicolon separated).
+ */
 export async function readPartnerFile(file) {
+  if (/\.json$/i.test(file)) {
+    return partnerItems(partnerJsonRows(JSON.parse(readFileSync(file, 'utf8'))));
+  }
   if (/\.csv$/i.test(file)) {
     const text = readFileSync(file, 'utf8');
     const sep = (text.split('\n')[0].match(/;/g)?.length ?? 0) > (text.split('\n')[0].match(/,/g)?.length ?? 0) ? ';' : ',';
@@ -54,7 +78,8 @@ export async function readPartnerFile(file) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(file);
   const rows = [];
-  wb.worksheets[0].eachRow({ includeEmpty: true }, (row) => rows.push([row.getCell(1).text, row.getCell(2).text, row.getCell(3).text]));
+  const sheet = wb.worksheets.find((w) => w.name.trim().toLowerCase() === 'номенклатура') ?? wb.worksheets[0];
+  sheet.eachRow({ includeEmpty: true }, (row) => rows.push([row.getCell(1).text, row.getCell(2).text, row.getCell(3).text]));
   return partnerItems(rows);
 }
 

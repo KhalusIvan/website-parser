@@ -174,7 +174,8 @@ export async function buildCatalog({ dir = 'output', partnerFile = null, log = c
     const descriptionUa = cleanDescription(text.ua.description);
     const descriptionRu = ruText ? cleanDescription(ruText.ru.description) : '';
     const nameRu = main.ru?.name ?? list.find((o) => o.ru)?.ru.name ?? '';
-    const brand = productBrand(list);
+    // Moser is sold under the Wahl brand in the shop
+    const brand = productBrand(list) === 'Moser' ? 'Wahl' : productBrand(list);
     const line = list.find((o) => o.line)?.line ?? '';
 
     products.push({
@@ -204,6 +205,7 @@ export async function buildCatalog({ dir = 'output', partnerFile = null, log = c
       offers: list.map((o) => ({
         source: o.source,
         link: o.ua.link,
+        category: o.ua.category ?? '',
         linkRu: o.ru?.link ?? '',
         sku: o.sku,
         price: o.price,
