@@ -61,6 +61,19 @@ test('categories: product type in the name beats the shop category; deepest cate
   assert.equal(classify('moser', 'Ножові блоки/Ножові блоки А5', 'Ножовий блок Moser #10F'), 'groom-blades');
   assert.equal(classify('gama', 'Аксесуари', 'Наcадка для фена GaMa IQ'), 'parts-dryer'); // Latin "c" inside the word
   assert.equal(classify('jrl', 'JRL X DIAMANTE COLLECTION', 'Професійний фен JRL x Diamante Forte Pro Lite'), 'tech-dryers');
+  // parts and accessories OF a device are not the device ("… до фену", "… для машинки")
+  assert.equal(classify('jrl', '', 'Перемикач холодного повітря до фену JRL Forte Pro L, JRL-FP2020L'), 'parts-other');
+  assert.equal(classify('jrl', '', 'Обмежувач кабелю до фену JRL Forte Pro'), 'parts-other');
+  assert.equal(classify('jrl', '', 'Брелок у вигляді машинки JRL Onyx'), 'merch');
+  assert.equal(classify('jrl', '', 'Професійний ніж для машинки JRL-2020C, стандартний'), 'parts-blades');
+  assert.equal(classify('jrl', '', 'Адаптор до машинки JRL-1090'), 'parts-power');
+  assert.equal(classify('jrl', '', 'Тримач настінний до фену JRL Forte Pro L'), 'tools-holders');
+  assert.equal(classify('jrl', '', 'Сіточка з ножем в комплекті до шейверу JRL ONYX SF PRO-SHAVER'), 'parts-shaver');
+  assert.equal(classify('babyliss', 'Фени', 'Оригінальна захисна кришка Babyliss PRO для електробритви FXFS2E'), 'parts-other');
+  // ...while the devices stay where they are
+  assert.equal(classify('jrl', '', 'Машинка для стрижки JRL Onyx'), 'tech-clippers');
+  assert.equal(classify('gama', 'Фени', 'Фен для волосся GA.MA Tempo 2200 Вт'), 'tech-dryers');
+  assert.equal(classify('kucheryawiy', 'Техніка/Тримери для стрижки', 'Тример для носу та вух Ga.Ma Ovetto'), 'tech-nose');
 });
 
 test('attributes: synonyms merged, brand-only attributes dropped', () => {

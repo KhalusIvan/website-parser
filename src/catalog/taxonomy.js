@@ -127,6 +127,10 @@ export function categoryPath(id, lang = 'ua') {
  *    animal products (or undefined = same)]
  */
 const HEAD_RULES = [
+  [/^(\S+ )?(набір|засіб|спрей) для догляду за (перукарськ\S* )?ножиц/, 'tools-other'],
+  [/^(\S+ )?органайзер/, 'tools-holders'],
+  [/^штатив/, 'tools-mannequins'],
+  [/^брелок/, 'merch'],
   [/^(\S+ ){0,2}(спрей|масло|олія|засіб|набір) (для|по) (догляду за (нож|інструмент|машинк)|охолодж|змащ|ножів|машинок)/, 'parts-care'],
   [/^(\S+ ){0,2}(кейс|сумка|чохол|футляр)/, 'tools-bags'],
   [/^(\S+ ){0,2}(коврик|килимок)/, 'tools-holders'],
@@ -160,7 +164,7 @@ const HEAD_RULES = [
   [/^(\S+ )?(односторонн\S* |двосторонн\S* )?леза(?!\p{L})/u, 'shaving-razors'],
   [/^(\S+ )?бритва(?!-шейвер)/, 'shaving-razors'],
   [/^(\S+ )?(голова-манекен|манекен)/, 'tools-mannequins'],
-  [/^(\S+ )?тример для носа/, 'tech-nose'],
+  [/^(\S+ )?тример для нос[ауі]/, 'tech-nose'],
   [/^(побутов\S* |професійн\S* )?тример/, 'tech-trimmers', 'groom-trimmers'],
   [/^(професійн\S* )?(набір|комплект)(?!.*насад)(?!.*догляд)(?!.*ножиц).*(машинк|тример|шейвер|neo kit|\+)/, 'tech-sets'],
   [/^ножиці для кутикул|^манікюрн\S* ножиці/, 'mani-scissors'],
@@ -189,12 +193,13 @@ const GROOM_RULES = [
  *    '__parts__' sorts spare parts by what they are.
  */
 const PART_RULES = [
-  [/акумулятор|батаре|заряд|адаптер|блок живлення|док-станц|кабель|шнур|трансформатор/, 'parts-power'],
-  [/сітк|картридж|ріжучий блок шейвер|ніж.*(шейвер|бритв)|(шейвер|бритв).*(ніж|лез)|foil|головк/, 'parts-shaver'],
+  [/обмежувач (кабел|шнур|провод)/, 'parts-other'],
+  [/акумулятор|батаре|заряд|адаптер|адаптор|блок живлення|док-станц|кабель|шнур|трансформатор/, 'parts-power'],
+  [/сітк|сіточк|картридж|ріжучий блок шейвер|ніж.*(шейвер|бритв)|(шейвер|бритв).*(ніж|лез)|foil|головк/, 'parts-shaver'],
   [/дифузор|концентратор|сопло|фільтр|фен.*насад|насад.*фен/, 'parts-dryer'],
-  [/ножов|(?<!\p{L})ніж|ножі(?!\p{L})|лез|blade/u, 'parts-blades'],
-  [/насадк|насадок|обмежувач|guide|приставк/, 'parts-guides'],
   [/масло|мастил|олі[яї]|спрей|змазк|засіб|охолодж|очищ|clean|cide(?!\p{L})/u, 'parts-care'],
+  [/ножов|(?<!\p{L})ніж|ножі(?!\p{L})|ножів|лез|blade/u, 'parts-blades'],
+  [/насадк|насадок|обмежувач|guide|приставк/, 'parts-guides'],
   [null, 'parts-other'],
 ];
 
@@ -366,6 +371,47 @@ const ANIMAL = /тварин|грумін|грумер|animal|для собак|
 /** Shops that only sell animal grooming products. */
 const ANIMAL_SHOPS = new Set(['moser']);
 
+/**
+ * What a product IS is said before "до", "для", "на"…: "Перемикач … до фену" is a part, "Фен для
+ * волосся" is a dryer, "Брелок у вигляді машинки" is a souvenir. The words before the first of them.
+ */
+const PREPOSITION = /\s(до|для|на|від|під|у вигляді|в вигляді)\s/;
+const typeWords = (nm) => {
+  const m = PREPOSITION.exec(nm);
+  return m ? nm.slice(0, m.index) : nm;
+};
+/** the word a device's own name has (a dryer's name says "фен" before any "до"/"для") */
+const DEVICE = {
+  'tech-clippers': /машинк/,
+  'tech-trimmers': /трим+ер/,
+  'tech-nose': /трим+ер/,
+  'tech-shavers': /шейвер|бритв/,
+  'tech-sets': /набір|набор|комплект|машинк|трим+ер/,
+  'tech-dryers': /(?<!\p{L})фен/u,
+  'tech-airstylers': /стайлер|фен|браш/,
+  'tech-straighteners': /випрямляч|праск|утюжк/,
+  'tech-curlers': /плойк|стайлер|щипц/,
+  'tech-crimpers': /гофре|плойк|щипц|випрямляч/,
+  'tech-hotrollers': /бігуді/,
+};
+/** words of parts and accessories of a device */
+const PART_WORDS = /накладк|рамк|корпус|гільз|перемикач|кнопк|обмежувач|кронштейн|брелок|сувенір|резинк|підставк|тримач|кришк|регулювання ножів|ремкомплект|запчастин|шестерн|двигун|мотор|плат[аи](?!\p{L})|нагріва\S* елемент|база для зарядк|адаптор|адаптер/u;
+/** A part or accessory OF a device (not the device): where it goes. */
+function partOf(nm) {
+  if (/брелок|сувенір/.test(nm)) return 'merch';
+  if (/(?<!\p{L})(підставк|тримач настін|настінн\S* тримач|тримач для|тримач до)/u.test(nm) && !/заряд/.test(nm)) return 'tools-holders';
+  for (const [partRe, partId] of PART_RULES) if (!partRe || partRe.test(nm)) return partId;
+  return 'parts-other';
+}
+/** a technics category for something that is only a part of it -> the part's category */
+function checkDevice(id, nm) {
+  if (!id || !DEVICE[id]) return id;
+  const head = typeWords(nm);
+  if (DEVICE[id].test(head) && !PART_WORDS.test(head)) return id; // "Фен для волосся …"
+  if (!DEVICE[id].test(nm) && !PART_WORDS.test(head)) return id; // a name of a model only ("JRL Onyx")
+  return partOf(nm);
+}
+
 /** Category id for one offer: its shop, Ukrainian category path and name; null if no rule matches. */
 export function classify(source, categoryPath, name) {
   const cat = lower(categoryPath);
@@ -391,12 +437,15 @@ export function classify(source, categoryPath, name) {
         for (const [partRe, partId] of PART_RULES) if (!partRe || partRe.test(nm)) return partId;
       }
       if (nameRe && !nameRe.test(nm)) continue;
-      if (id) return id;
+      if (id) return checkDevice(id, nm);
       break; // a section that says nothing: try the name rules
     }
   }
-  // 4. the name alone
-  for (const [re, id] of NAME_RULES) if (re.test(nm)) return id;
+  // 4. the name alone: what it is (the words before "до", "для"…) first, then the whole name
+  const head4 = typeWords(nm);
+  if (head4 !== nm) for (const [re, id] of NAME_RULES) if (re.test(head4)) return checkDevice(id, nm);
+  for (const [re, id] of NAME_RULES) if (re.test(nm)) return checkDevice(id, nm);
+  if (PART_WORDS.test(head4)) return partOf(nm); // "Обмежувач кабелю до фену …"
   if (/аксесуар/.test(cat)) return 'tools-other';
   if (/манікюр|педикюр/.test(cat)) return 'mani-other';
   return null;
