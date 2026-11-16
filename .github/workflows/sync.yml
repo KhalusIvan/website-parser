@@ -29,9 +29,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  sync:
+  # the list of sites (src/sources), so the jobs below need no list of their own
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 5
+    outputs:
+      sites: ${{ steps.sites.outputs.sites }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - id: sites
+        run: echo "sites=$(node -e "import('./src/sources/index.js').then((m) => console.log(JSON.stringify(m.sources.map((s) => s.id))))")" >> "$GITHUB_OUTPUT"
+
+  # every site in its own job: its own runner and IP address (gama, moser and spl4barber share a
+  # server that blocks one visitor asking too much; kucheryawiy cuts off a long run from one address)
+  scrape:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        site: ${{ fromJSON(needs.plan.outputs.sites) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,10 +74,57 @@ jobs:
           key: offers-${{ github.run_id }}
           restore-keys: offers-
 
-      - name: Scrape and build the feed
+      - name: Scrape ${{ matrix.site }}
         env:
           MODE: ${{ inputs.mode }}
-        run: node src/sync/cli.js --mode "$MODE" --out output
+          SITE: ${{ matrix.site }}
+        run: node src/sync/cli.js --mode "$MODE" --stage scrape --only "$SITE" --out output
+
+      - name: The site's file for the feed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: part-${{ matrix.site }}
+          path: |
+            output/${{ matrix.site }}.xlsx
+            output/report-${{ matrix.site }}.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # the feed from all sites' files (a site whose job failed: its products stay as they are)
+  feed:
+    needs: scrape
+    if: always() && needs.scrape.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Product pages of the last full run
+        uses: actions/cache/restore@v4
+        with:
+          path: output/offers.json
+          key: offers-${{ github.run_id }}
+          restore-keys: offers-
+
+      - name: Files of the sites
+        uses: actions/download-artifact@v4
+        with:
+          pattern: part-*
+          merge-multiple: true
+          path: output
+
+      - name: Build the feed
+        env:
+          MODE: ${{ inputs.mode }}
+        run: node src/sync/cli.js --mode "$MODE" --stage build --out output
 
       - name: Keep the product pages for quick runs
         if: success() && hashFiles('output/offers.fresh') != ''

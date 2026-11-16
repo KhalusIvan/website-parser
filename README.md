@@ -188,8 +188,13 @@ schedule or with the "now" buttons, and downloads the result:
 
 - `quick`: only the product pages the shop sells (the list `output/offers.json` from the last full run,
   kept in the Actions cache), Ukrainian only, no category crawling: fresh prices and stock.
-- `full`: every site in all languages, like `npm run scrape` for each, then the catalog. Sites that
-  share a server (gama, moser, spl4barber) go one after another, the others at the same time.
+- `full`: every site in all languages, like `npm run scrape` for each, then the catalog.
+
+Every site is scraped by its own job (`--stage scrape --only <site>`), so each one comes from its own
+runner and IP address: gama, moser and spl4barber share a server that blocks one visitor asking too
+much, and kucheryawiy cuts off a long run from one address. The last job builds the feed from the
+sites' files (`--stage build`). A site whose job failed is reported to the shop, and its products stay
+as they are. Note: Actions minutes are counted per job, so a run costs the sum of all sites' times.
 
 Both write `output/site-feed.ndjson` (first line: categories and brands, then one product per line,
 the same fields as `mainmarket-catalog.json`) and `output/sync-report.json` (minutes, products and
