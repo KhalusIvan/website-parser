@@ -174,8 +174,9 @@ export async function buildCatalog({ dir = 'output', partnerFile = null, log = c
     const descriptionUa = cleanDescription(text.ua.description);
     const descriptionRu = ruText ? cleanDescription(ruText.ru.description) : '';
     const nameRu = main.ru?.name ?? list.find((o) => o.ru)?.ru.name ?? '';
-    // Moser is sold under the Wahl brand in the shop
-    const brand = productBrand(list) === 'Moser' ? 'Wahl' : productBrand(list);
+    // Moser is sold under the Wahl brand in the shop; the real maker goes along (the shop hides Moser out of stock)
+    const maker = productBrand(list);
+    const brand = maker === 'Moser' ? 'Wahl' : maker;
     const line = list.find((o) => o.line)?.line ?? '';
 
     products.push({
@@ -184,6 +185,7 @@ export async function buildCatalog({ dir = 'output', partnerFile = null, log = c
       sku: partner?.get(group.key)?.code ?? (main.sku || list.find((o) => o.sku)?.sku || ''),
       partnerName: partner?.get(group.key)?.name ?? '',
       brand,
+      maker,
       categoryId: categoryId ?? 'tools-other',
       nameUa: main.ua.name.replace(/\s+/g, ' ').trim(),
       nameRu: nameRu.replace(/\s+/g, ' ').trim(),

@@ -63,6 +63,7 @@ export function tables({ products, categories }) {
       partner_name: p.partnerName,
       brand_id: brandId.get(p.brand) ?? '',
       brand: p.brand,
+      maker: p.maker ?? p.brand,
       category_id: categoryId.get(p.categoryId),
       category_key: p.categoryId,
       category_ua: byKey.get(p.categoryId).pathUa,
