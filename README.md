@@ -25,7 +25,7 @@ of a product is found by its photo, article or link (every product of every site
 | `kucheryawiy` | kucheryawiy.com.ua | ua, ru | Multi-brand shop, about 2,750 products (the biggest) |
 | `moser` | moser-animal.com | ua | Moser / WAHL animal clippers, about 155 products, about 4 minutes |
 | `spl` | spl-group.com.ua | ua, ru | SPL Group, about 1,500 products, about 15 minutes |
-| `spl4barber` | spl4barber.com.ua | ua | Wahl barber shop, about 220 products (slow site) |
+| `spl4barber` | wahl-pro.com.ua (ex spl4barber.com.ua) | ua | Wahl barber shop, about 220 products (slow site) |
 | `gloriana` | glorianapro.com | ua, ru | Gloriana Pro dryers and stylers, about 30 products, under a minute |
 
 All of them: `price` = regular price and `price special` = sale price; `available` comes from the

@@ -10,7 +10,7 @@ const ATTRS = { iframe: ['src', 'width', 'height', 'allowfullscreen'], td: ['col
 /** Sentences about the supplier shop itself (its site, its store, its delivery). */
 const SHOP_SENTENCE =
   // Shop names only in Latin / as domains: "врода" (beauty) and "кучерявий" (curly) are ordinary words.
-  /(vroda|kucheryaw|babyliss\.in\.ua|babyliss-pro\.com\.ua|spl-group|spl4barber|jrl\.in\.ua|moser-animal|gamaofficial|mrd-pro\.com|immortal\.com\.ua|jaguar-solingen\.in|glorianapro|на нашому сайті|на нашем сайте|(у|в) нашому (інтернет-)?магазин|в нашем (интернет-)?магазин|наш (інтернет-)?магазин|наш интернет-магазин|замовляйте (у|в) нас|заказывайте у нас|купуйте (у|в) нас|покупайте у нас)/i;
+  /(vroda|kucheryaw|babyliss\.in\.ua|babyliss-pro\.com\.ua|spl-group|spl4barber|wahl-pro|jrl\.in\.ua|moser-animal|gamaofficial|mrd-pro\.com|immortal\.com\.ua|jaguar-solingen\.in|glorianapro|на нашому сайті|на нашем сайте|(у|в) нашому (інтернет-)?магазин|в нашем (интернет-)?магазин|наш (інтернет-)?магазин|наш интернет-магазин|замовляйте (у|в) нас|заказывайте у нас|купуйте (у|в) нас|покупайте у нас)/i;
 
 function dropShopSentences(text) {
   if (!SHOP_SENTENCE.test(text)) return text;

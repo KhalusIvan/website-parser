@@ -199,7 +199,7 @@ export default [
   {
     "id": "spl4barber",
     "name": "SPL4Barber",
-    "website": "https://spl4barber.com.ua",
+    "website": "https://wahl-pro.com.ua",
     "description": "Official Wahl distributor: clippers, trimmers, shavers, hair dryers, straighteners, spare parts and accessories.",
     "languages": {
       "ua": "Українська"

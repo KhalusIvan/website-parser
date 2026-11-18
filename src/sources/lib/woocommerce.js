@@ -1,7 +1,9 @@
 // Shared scraper for WordPress + WooCommerce shops with the "woodmart" theme (babyliss-pro.com.ua,
-// spl4barber.com.ua). Each site passes its own settings to createWooSource(). Notes:
+// wahl-pro.com.ua, ex spl4barber.com.ua). Each site passes its own settings to createWooSource(). Notes:
 //  - Categories come from a catalogue menu on the home page (a selector per site), subcategories
 //    before their parent, and categories matching `lastCategories` (e.g. "new") at the very end.
+//    When the home page has no such menu (e.g. the category widget is only in category pages' sidebar),
+//    it is read from the first category the home page links to.
 //    Subcategory tiles shown on a category page are visited before the category itself too: with
 //    WooCommerce's "show subcategories" mode, page 1 of a parent category shows only those tiles
 //    (its first products are only listed in the subcategories), and products continue on page 2.
@@ -205,7 +207,11 @@ export function createWooSource(site) {
     const visited = new Set();
     if (mode === 'all') {
       const $ = await ctx.http.getHtml(home);
-      const categories = menuCategories($, site.menu, site.lastCategories);
+      let categories = menuCategories($, site.menu, site.lastCategories);
+      if (!categories.length) {
+        const first = $('a[href*="/product-category/"]').first().prop('href');
+        if (first) categories = menuCategories(await ctx.http.getHtml(categoryUrl(first)), site.menu, site.lastCategories);
+      }
       if (!categories.length) throw new Error(`Catalogue menu not found on ${site.website} - the site layout may have changed`);
       for (const category of categories) {
         try {

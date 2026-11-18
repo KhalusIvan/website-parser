@@ -18,6 +18,8 @@ const SERVERS = {
   'moser-animal.com': { queue: 'shared-88.218.29.91', concurrency: 1, pauseMs: 800 },
   'gamaofficial.com.ua': { queue: 'shared-88.218.29.91', concurrency: 1, pauseMs: 800 },
   'spl4barber.com.ua': { queue: 'shared-88.218.29.91', concurrency: 1, pauseMs: 800 },
+  // spl4barber moved here in November 2026 (assumed on the same server until shown otherwise)
+  'wahl-pro.com.ua': { queue: 'shared-88.218.29.91', concurrency: 1, pauseMs: 800 },
 };
 const DEFAULT_SERVER = { concurrency: 2, pauseMs: 150 };
 

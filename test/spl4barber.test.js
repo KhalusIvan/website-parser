@@ -1,4 +1,4 @@
-// Offline tests for the spl4barber.com.ua source (no network). Shared helpers: test/babyliss.test.js.
+// Offline tests for the spl4barber source (wahl-pro.com.ua, ex spl4barber.com.ua) (no network). Shared helpers: test/babyliss.test.js.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ function fakeHttp(routes) {
 }
 const ctx = (http) => ({ http, log: () => {} });
 
-const S = 'https://spl4barber.com.ua';
+const S = 'https://wahl-pro.com.ua';
 const SITE = {
   [`${S}/`]: 'spl4barber-home.html',
   [`${S}/product-category/bez-katehorii/`]: 'spl4barber-empty.html',
@@ -51,6 +51,23 @@ test('collectLinks (whole site): footer category list, subcategories first, pare
   });
   // a subcategory only shown as a tile on the parent page is visited too
   assert.ok(http.calls.includes(`${S}/product-category/zapchastini/zapchastini-hero/`));
+});
+
+test('collectLinks (whole site, 2026 layout): no category list on the home page - read from the first category page', async () => {
+  const http = fakeHttp({
+    ...SITE,
+    [`${S}/`]: 'spl4barber-home-2026.html',
+    [`${S}/product-category/feny/`]: 'spl4barber-category-sidebar.html',
+  });
+  const links = await spl.collectLinks({ lang: 'ua', mode: 'all' }, ctx(http));
+  assert.deepEqual(
+    [...links.entries()].map(([link, extra]) => [link, extra.category]),
+    [
+      [`${S}/product/sitka-vanish-3022905/`, 'Запчастини/Запчастини для Wahl Vanish'],
+      [`${S}/product/korpus-magic-clip-s08148-7125/`, 'Запчастини'],
+      [`${S}/product/fen-vanquish-4321-0470/`, 'Фени'],
+    ],
+  );
 });
 
 test('collectLinks (one category): a parent category also collects its subcategories', async () => {
