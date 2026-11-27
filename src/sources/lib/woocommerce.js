@@ -17,6 +17,9 @@
 //    "available-on-backorder" (pre-order) = not available. Products that don't track stock show no
 //    label: then they are available only if WooCommerce marks them "instock" and the page has an
 //    "add to cart" button.
+//  - "ЗНЯТО З ВИРОБНИЦТВА" (discontinued, in the short description or anywhere in the product block):
+//    not available, and the product is marked "discontinued" (column "discontinued" = "+"), whatever
+//    stock label the page shows - the shop hides such products.
 //  - Specs: WooCommerce's attributes table (woodmart adds hint texts to some names - not exported).
 //    Attributes without a name (shown as their slug "pa_...") are skipped.
 //    vendor = the value of the site's brand attribute (e.g. "Виробник"), else the shop's brand.
@@ -26,6 +29,9 @@ import { createProduct, movePrices } from '../../core/product.js';
 export { fitDescription }; // shared, in core/html.js
 
 const MAX_PAGES = 200;
+
+/** "Знято з виробництва" / "Снято с производства": the maker no longer makes it. */
+export const DISCONTINUED = /зняти?[оий]?\s+з\s+виробництва|снят[оаы]?\s+с\s+производства/i;
 
 /** Excel's maximum text length per cell. */
 
@@ -254,11 +260,17 @@ export function createWooSource(site) {
       .get()
       .filter((src) => /^https?:\/\//.test(src ?? ''));
 
+    // "ЗНЯТО З ВИРОБНИЦТВА" on the product itself (not on related products below it)
+    const own = main.clone();
+    own.find('.product-grid-item').remove();
+    const discontinued = DISCONTINUED.test(normText(own.text()));
+
     let description = descriptionHtml($, '#tab-description');
     if (!description && site.descriptionFallback) description = descriptionHtml($, site.descriptionFallback);
 
     const specs = attributes($, main);
     specs.vendor = (site.brandSpec && specs[site.brandSpec]) || site.brand;
+    if (discontinued) specs.discontinued = '+';
 
     return movePrices(
       createProduct({
@@ -271,7 +283,7 @@ export function createWooSource(site) {
         priceSpecial,
         sku: normText(inMain($, main, '.product_meta .sku').first().text()).replace(/^(Н\/Д|N\/A)$/i, ''),
         parent: '',
-        available,
+        available: available && !discontinued,
         specs,
       }),
     );

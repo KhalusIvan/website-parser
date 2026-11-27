@@ -74,7 +74,10 @@ jobs:
           key: offers-${{ github.run_id }}
           restore-keys: offers-
 
+      # a step over its time limit fails (the job goes on, the feed is built without this site);
+      # a job over its own limit would be cancelled, and a cancelled job stops the whole update
       - name: Scrape ${{ matrix.site }}
+        timeout-minutes: 200
         env:
           MODE: ${{ inputs.mode }}
           SITE: ${{ matrix.site }}

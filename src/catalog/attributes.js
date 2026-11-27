@@ -9,6 +9,7 @@ const SYNONYMS = {
   'Babyliss PRO': null,
   'Wahl': null,
   'vendor': null,
+  'discontinued': null,
   'Штрих-код': null,
   'Стан': null,
 

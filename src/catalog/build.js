@@ -196,6 +196,8 @@ export async function buildCatalog({ dir = 'output', partnerFile = null, log = c
       price: price ? price.price || price.effectivePrice : 0,
       special: price && price.special && price.special < price.price ? price.special : 0,
       available: list.some((o) => o.available && o.effectivePrice > 0),
+      // a shop says "знято з виробництва": the shop hides it
+      discontinued: list.some((o) => o.discontinued),
       priceSource: price?.source ?? '',
       priceNote,
       priceLink: price?.ua.link ?? '',

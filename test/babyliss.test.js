@@ -98,6 +98,17 @@ test('backorder ("Доступно за замовленням") is not availabl
   assert.deepEqual(p.specs, { vendor: 'Babyliss Pro' });
 });
 
+test('"ЗНЯТО З ВИРОБНИЦТВА": not available although the page sells it, marked discontinued', async () => {
+  const link = `${B}/product/fen-prodigio/`;
+  const http = fakeHttp({ [link]: 'babyliss-product-discontinued.html' });
+  const p = await babyliss.parseProduct(link, {}, ctx(http));
+  assert.equal(p.available, false);
+  assert.equal(p.specs.discontinued, '+');
+  // the normal product is not
+  const ok = await babyliss.parseProduct(`${B}/product/masazher/`, {}, ctx(fakeHttp({ [`${B}/product/masazher/`]: 'babyliss-product-backorder.html' })));
+  assert.equal(ok.specs.discontinued, undefined);
+});
+
 test('helpers: money, categoryUrl, pageUrl, cleanLink, fitDescription', () => {
   assert.equal(money('10 000 грн'), '10000.00');
   assert.equal(money('1,250 грн'), '1250.00');

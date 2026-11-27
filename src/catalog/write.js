@@ -81,6 +81,7 @@ export function tables({ products, categories }) {
       price: p.price || '',
       special_price: p.special || '',
       available: p.available ? 1 : 0,
+      discontinued: p.discontinued ? 1 : 0,
       stock_status_ua: STOCK.ua[p.available ? 0 : 1],
       stock_status_ru: STOCK.ru[p.available ? 0 : 1],
       main_image: files[0] ?? '',

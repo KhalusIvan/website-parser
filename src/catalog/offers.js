@@ -53,6 +53,7 @@ async function readFile(file) {
       if (!v) return;
       if (BASE_COLUMNS.includes(col)) o[col] = v;
       else if (col === 'vendor') o.vendor = v;
+      else if (col === 'discontinued') o.discontinued = v;
       else o.specs[col] = v;
     });
     rows.push(o);
@@ -89,6 +90,7 @@ async function readCombinedFile(file) {
       const target = isRu ? ru : ua;
       if (BASE_COLUMNS.includes(name)) target[name] = v;
       else if (name === 'vendor') ua.vendor = v;
+      else if (name === 'discontinued') ua.discontinued = v;
       else if (isRu) ru.specs[ruName.get(name) || name] = v;
       else ua.specs[name] = v;
     });
@@ -193,7 +195,9 @@ export async function loadOffers(dir, { log = console.log } = {}) {
         special,
         // what a customer pays at this shop
         effectivePrice: special && special < price ? special : price,
-        available: ua.available === '+',
+        available: ua.available === '+' && ua.discontinued !== '+',
+        // the shop says the maker no longer makes it ("знято з виробництва")
+        discontinued: ua.discontinued === '+',
       };
       seen.push(offer);
       offers.push(offer);
